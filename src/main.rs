@@ -4,8 +4,11 @@ use dioxus::prelude::*;
 
 use views::{Blog, Home, Navbar};
 
+mod auth;
 /// Define a components module that contains all shared components for our app.
 mod components;
+#[cfg(all(feature = "server", any(target_os = "linux", target_os = "macos", target_os = "windows")))]
+mod server;
 /// Define a views module that contains the UI for all Layouts and Routes for our app.
 mod views;
 
@@ -40,6 +43,9 @@ const MAIN_CSS: Asset = asset!("/assets/styling/main.css");
 const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
 
 fn main() {
+    // dioxus-cookie stores auth cookies across web and mobile targets. The correct backend is chosen automatically.
+    dioxus_cookie::init();
+
     // The `launch` function is the main entry point for a dioxus app. It takes a component and renders it with the platform feature
     // you have enabled
     dioxus::launch(App);
@@ -51,6 +57,9 @@ fn main() {
 /// Components should be annotated with `#[component]` to support props, better error messages, and autocomplete
 #[component]
 fn App() -> Element {
+    let auth_refresh = use_signal(|| 0_u64);
+    use_context_provider(|| auth_refresh);
+
     // The `rsx!` macro lets us define HTML inside of rust. It expands to an Element with all of our HTML inside.
     rsx! {
         // In addition to element and text (which we will see later), rsx can contain other components. In this case,

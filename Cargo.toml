@@ -8,14 +8,24 @@ edition = "2021"
 
 [dependencies]
 dioxus = { version = "0.7.1", features = ["router", "fullstack"] }
+dioxus-cookie = { version = "0.2", default-features = false }
+serde = { version = "1", features = ["derive"] }
+
+[target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))'.dependencies]
+sea-orm = { version = "1.1", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-sqlite"], optional = true }
+argon2 = { version = "0.5", optional = true }
+password-hash = { version = "0.5", features = ["rand_core"], optional = true }
+rand_core = { version = "0.6", features = ["getrandom"], optional = true }
+tokio = { version = "1", features = ["sync"], optional = true }
+uuid = { version = "1", features = ["v4"], optional = true }
 
 [features]
-default = ["desktop"]
+default = ["web"]
 # The feature that are only required for the web = ["dioxus/web"] build target should be optional and only enabled in the web = ["dioxus/web"] feature
 web = ["dioxus/web"]
 # The feature that are only required for the desktop = ["dioxus/desktop"] build target should be optional and only enabled in the desktop = ["dioxus/desktop"] feature
-desktop = ["dioxus/desktop"]
+desktop = ["dioxus/desktop", "dioxus-cookie/desktop"]
 # The feature that are only required for the mobile = ["dioxus/mobile"] build target should be optional and only enabled in the mobile = ["dioxus/mobile"] feature
-mobile = ["dioxus/mobile"]
+mobile = ["dioxus/mobile", "dioxus-cookie/mobile-sim"]
 # The feature that are only required for the server = ["dioxus/server"] build target should be optional and only enabled in the server = ["dioxus/server"] feature
-server = ["dioxus/server"]
+server = ["dioxus/server", "dioxus-cookie/server", "dep:sea-orm", "dep:argon2", "dep:password-hash", "dep:rand_core", "dep:tokio", "dep:uuid"]

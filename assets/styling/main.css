@@ -40,3 +40,18 @@ body {
 #header {
     max-width: 1200px;
 }
+
+#home-intro {
+    max-width: 820px;
+    margin: 40px auto 0 auto;
+    text-align: center;
+}
+
+#home-intro h1 {
+    margin-bottom: 12px;
+}
+
+#home-intro p {
+    color: #bec8dd;
+    line-height: 1.6;
+}

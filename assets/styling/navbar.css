@@ -1,6 +1,14 @@
 #navbar {
   display: flex;
   flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+
+.nav-links {
+  display: flex;
+  flex-direction: row;
 }
 
 #navbar a {
@@ -13,4 +21,8 @@
 #navbar a:hover {
   cursor: pointer;
   color: #91a4d2;
+}
+
+.nav-session {
+  color: #bec8dd;
 }
