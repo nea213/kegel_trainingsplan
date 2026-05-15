@@ -1,26 +1,17 @@
 #navbar {
   display: flex;
-  flex-direction: row;
   justify-content: space-between;
   align-items: center;
   gap: 20px;
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 8px 0 16px 0;
+  border-bottom: 1px solid #2b3447;
 }
 
-.nav-links {
-  display: flex;
-  flex-direction: row;
-}
-
-#navbar a {
-  color: #ffffff;
-  margin-right: 20px;
-  text-decoration: none;
-  transition: color 0.2s ease;
-}
-
-#navbar a:hover {
-  cursor: pointer;
-  color: #91a4d2;
+.nav-title {
+  margin: 0;
+  font-size: 1.1rem;
 }
 
 .nav-session {

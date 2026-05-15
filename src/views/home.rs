@@ -1,17 +1,14 @@
-use crate::components::{AuthPanel, Hero};
+use crate::components::AuthPanel;
 use dioxus::prelude::*;
 
-/// The Home page component that will be rendered when the current route is `[Route::Home]`
 #[component]
 pub fn Home() -> Element {
     rsx! {
-        Hero {}
-
         section {
             id: "home-intro",
-            h1 { "SeaORM + SQLite Auth" }
+            h1 { "Auth & User" }
             p {
-                "Die App speichert Benutzer und Sessions jetzt serverseitig in SQLite und stellt Login/Logout über Dioxus-Serverfunktionen bereit."
+                "Benutzer, Sessions, Registrierung und Login laufen vollständig über die serverseitige Auth-Logik."
             }
         }
 
