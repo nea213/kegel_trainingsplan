@@ -1,10 +1,25 @@
+html {
+    background: var(--bg-app);
+}
+
 body {
-    background-color: #0f1116;
-    color: #ffffff;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background:
+        radial-gradient(circle at top left, var(--bg-app-accent), transparent 32%),
+        radial-gradient(circle at bottom right, var(--bg-app-accent-2), transparent 34%),
+        linear-gradient(180deg, color-mix(in oklab, var(--bg-app) 92%, var(--bg-surface) 8%), var(--bg-app));
+    color: var(--text-primary);
+    font-family: Inter, "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
     min-height: 100vh;
     padding: 20px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+a {
+    color: inherit;
 }
 
 #home-intro {
@@ -14,6 +29,8 @@ body {
 
 .home-intro-card {
     overflow: hidden;
+    backdrop-filter: blur(18px);
+    box-shadow: var(--surface-shadow);
 }
 
 .home-badges {
@@ -27,9 +44,14 @@ body {
     gap: 0;
 }
 
+.home-feature-list [data-slot="item"] {
+    padding-block: 0.35rem;
+}
+
 .home-divider {
     max-width: 980px;
     margin: 24px auto 0 auto;
+    opacity: 0.65;
 }
 
 @media (max-width: 640px) {

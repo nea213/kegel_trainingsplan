@@ -65,6 +65,7 @@ async fn ensure_schema(db: &DatabaseConnection) -> Result<(), DbErr> {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT NOT NULL UNIQUE,
             password_hash TEXT NOT NULL,
+            theme_mode TEXT NOT NULL DEFAULT 'system',
             created_at INTEGER NOT NULL,
             updated_at INTEGER NOT NULL
         );
@@ -99,6 +100,32 @@ async fn ensure_schema(db: &DatabaseConnection) -> Result<(), DbErr> {
         "CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions (expires_at);".to_string(),
     ))
     .await?;
+
+    ensure_user_theme_mode_column(db).await?;
+
+    Ok(())
+}
+
+async fn ensure_user_theme_mode_column(db: &DatabaseConnection) -> Result<(), DbErr> {
+    let statement = Statement::from_string(
+        db.get_database_backend(),
+        "PRAGMA table_info(users);".to_string(),
+    );
+    let columns = db.query_all(statement).await?;
+
+    let has_theme_mode = columns.iter().any(|row| {
+        row.try_get::<String>("", "name")
+            .map(|name| name == "theme_mode")
+            .unwrap_or(false)
+    });
+
+    if !has_theme_mode {
+        db.execute(Statement::from_string(
+            db.get_database_backend(),
+            "ALTER TABLE users ADD COLUMN theme_mode TEXT NOT NULL DEFAULT 'system';".to_string(),
+        ))
+        .await?;
+    }
 
     Ok(())
 }

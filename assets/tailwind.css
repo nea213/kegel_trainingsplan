@@ -203,6 +203,9 @@
     border-style: var(--tw-border-style);
     border-width: 1px;
   }
+  .lowercase {
+    text-transform: lowercase;
+  }
   .outline {
     outline-style: var(--tw-outline-style);
     outline-width: 1px;

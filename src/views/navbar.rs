@@ -1,8 +1,14 @@
 use crate::components::auth::sanitize_return_to;
 use crate::components::ui::avatar::{Avatar, AvatarFallback, AvatarImageSize};
 use crate::components::ui::badge::{Badge, BadgeVariant};
+use crate::components::ui::button::{Button, ButtonSize, ButtonVariant};
+use crate::components::ui::dropdown_menu::{
+    DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+};
 use crate::components::ui::navbar::{Navbar as UiNavbar, NavbarItem};
-use crate::{auth::current_user, Route};
+use crate::components::ui::separator::Separator;
+use crate::theme::{ThemeContext, ThemeMode};
+use crate::{auth::current_user, auth::logout_user, auth::update_theme_mode, auth::PublicUser, Route};
 use dioxus::prelude::*;
 
 const NAVBAR_CSS: Asset = asset!("/assets/styling/navbar.css");
@@ -10,6 +16,7 @@ const NAVBAR_CSS: Asset = asset!("/assets/styling/navbar.css");
 #[component]
 pub fn Navbar() -> Element {
     let auth_refresh = use_context::<Signal<u64>>();
+    let theme = use_context::<ThemeContext>();
     let nav = navigator();
     let current_route = router().full_route_string();
     let user_resource = use_server_future(move || {
@@ -18,29 +25,24 @@ pub fn Navbar() -> Element {
     })?;
     let user_state = user_resource.read().as_ref().cloned();
     let user = user_state.clone().flatten();
+    let theme_sync_target = user.clone();
     let login_target = sanitize_return_to(Some(current_route));
     let should_redirect_login = matches!(user_state, Some(None));
+    let redirect_nav = nav.clone();
 
     use_effect(move || {
+        if let Some(user) = theme_sync_target.clone() {
+            if theme.needs_sync(user.id) {
+                theme.sync_authenticated_user(user.id, user.theme_mode);
+            }
+        }
+
         if should_redirect_login {
-            let _ = nav.replace(Route::Login {
+            let _ = redirect_nav.replace(Route::Login {
                 return_to: login_target.clone(),
             });
         }
     });
-
-    let user_initials = user
-        .as_ref()
-        .map(|user| {
-            user.username
-                .chars()
-                .filter(|char| char.is_alphanumeric())
-                .take(2)
-                .collect::<String>()
-                .to_uppercase()
-        })
-        .filter(|initials| !initials.is_empty())
-        .unwrap_or_else(|| "KT".to_string());
 
     rsx! {
         document::Link { rel: "stylesheet", href: NAVBAR_CSS }
@@ -51,7 +53,7 @@ pub fn Navbar() -> Element {
                     id: "navbar",
                     div { class: "nav-brand",
                         h1 { class: "nav-title", "Kegel Trainingsplan" }
-                        p { class: "nav-subtitle", "Authentifizierung wird geprüft..." }
+                        p { class: "nav-subtitle", "Authentifizierung wird geprueft..." }
                     }
                 }
             },
@@ -73,7 +75,7 @@ pub fn Navbar() -> Element {
                     div { class: "nav-main",
                         UiNavbar {
                             aria_label: "Hauptnavigation",
-                            style: "background: #151a24; padding: 0.35rem; border-radius: 0.9rem; box-shadow: inset 0 0 0 1px #2b3447;",
+                            style: "background: var(--nav-pill-bg); padding: 0.35rem; border-radius: 0.9rem; box-shadow: inset 0 0 0 1px var(--nav-pill-border);",
                             NavbarItem {
                                 index: 0usize,
                                 value: "home".to_string(),
@@ -82,22 +84,150 @@ pub fn Navbar() -> Element {
                             }
                         }
                     }
-                    div {
-                        class: "nav-session",
-                        div { class: "nav-user",
-                            Avatar { size: AvatarImageSize::Small, aria_label: "Angemeldeter Benutzer",
-                                AvatarFallback { "{user_initials}" }
-                            }
-                            div { class: "nav-user-copy",
-                                span { class: "nav-user-name", "{user.username}" }
-                                span { class: "nav-user-state", "Session aktiv" }
-                            }
-                            Badge { variant: BadgeVariant::Secondary, "Online" }
-                        }
+                    div { class: "nav-session",
+                        UserMenu { user }
                     }
                 }
                 Outlet::<Route> {}
             },
+        }
+    }
+}
+
+#[component]
+fn UserMenu(user: PublicUser) -> Element {
+    let mut auth_refresh = use_context::<Signal<u64>>();
+    let theme = use_context::<ThemeContext>();
+    let nav = navigator();
+    let mut menu_busy = use_signal(|| false);
+    let mut menu_status = use_signal(|| None::<String>);
+    let active_theme = theme.current();
+    let username = user.username.clone();
+    let trigger_username = username.clone();
+    let header_username = username.clone();
+    let user_initials = user
+        .username
+        .chars()
+        .filter(|character| character.is_alphanumeric())
+        .take(2)
+        .collect::<String>()
+        .to_uppercase();
+    let user_initials = if user_initials.is_empty() {
+        "KT".to_string()
+    } else {
+        user_initials
+    };
+    let trigger_initials = user_initials.clone();
+
+    rsx! {
+        DropdownMenu {
+            DropdownMenuTrigger {
+                as: move |attributes: Vec<Attribute>| rsx! {
+                    button {
+                        class: "nav-user-menu-trigger",
+                        r#type: "button",
+                        ..attributes,
+                        div { class: "nav-user",
+                            Avatar { size: AvatarImageSize::Small, aria_label: "Angemeldeter Benutzer",
+                                AvatarFallback { "{trigger_initials}" }
+                            }
+                            div { class: "nav-user-copy",
+                                span { class: "nav-user-name", "{trigger_username}" }
+                                span { class: "nav-user-state", "Theme: {active_theme.label()}" }
+                            }
+                            Badge { variant: BadgeVariant::Secondary, "Online" }
+                        }
+                    }
+                },
+            }
+            DropdownMenuContent {
+                class: "nav-user-menu",
+                div { class: "nav-user-menu-header",
+                    span { class: "nav-user-menu-title", "{header_username}" }
+                    span { class: "nav-user-menu-subtitle", "Persoenliches Erscheinungsbild" }
+                }
+                Separator { class: "nav-user-menu-separator", decorative: true }
+                div { class: "nav-user-menu-section-label", "Theme" }
+                for (index, option) in [ThemeMode::Light, ThemeMode::Dark, ThemeMode::System].into_iter().enumerate() {
+                    DropdownMenuItem {
+                        index,
+                        value: option,
+                        disabled: menu_busy(),
+                        on_select: move |selected| {
+                            if menu_busy() {
+                                return;
+                            }
+
+                            if selected == active_theme {
+                                menu_status.set(None);
+                                return;
+                            }
+
+                            let previous_theme = active_theme;
+                            theme.set_authenticated_user_theme(user.id, selected);
+                            menu_status.set(None);
+                            spawn(async move {
+                                menu_busy.set(true);
+                                let result = update_theme_mode(selected).await;
+                                menu_busy.set(false);
+
+                                match result {
+                                    Ok(updated_user) => {
+                                        theme.set_authenticated_user_theme(updated_user.id, updated_user.theme_mode);
+                                        auth_refresh.with_mut(|value| *value += 1);
+                                    }
+                                    Err(error) => {
+                                        theme.set_authenticated_user_theme(user.id, previous_theme);
+                                        menu_status.set(Some(format!("Theme konnte nicht gespeichert werden: {error}")));
+                                    }
+                                }
+                            });
+                        },
+                        div { class: "nav-user-menu-item-copy",
+                            span { class: "nav-user-menu-item-title", "{option.label()}" }
+                            span { class: "nav-user-menu-item-description", "{option.description()}" }
+                        }
+                        if option == active_theme {
+                            Badge { variant: BadgeVariant::Outline, "Aktiv" }
+                        }
+                    }
+                }
+                Separator { class: "nav-user-menu-separator", decorative: true }
+                Button {
+                    class: "nav-user-menu-logout",
+                    variant: ButtonVariant::Ghost,
+                    size: ButtonSize::Sm,
+                    disabled: menu_busy(),
+                    onclick: move |_| {
+                        if menu_busy() {
+                            return;
+                        }
+
+                        menu_status.set(None);
+                        let nav = nav.clone();
+                        spawn(async move {
+                            menu_busy.set(true);
+                            let result = logout_user().await;
+                            menu_busy.set(false);
+
+                            match result {
+                                Ok(()) => {
+                                    auth_refresh.with_mut(|value| *value += 1);
+                                    theme.reset_to_system();
+                                    let _ = nav.replace(Route::Login { return_to: None });
+                                }
+                                Err(error) => {
+                                    menu_status.set(Some(format!("Logout fehlgeschlagen: {error}")));
+                                }
+                            }
+                        });
+                    },
+                    {if menu_busy() { "Speichert..." } else { "Logout" }}
+                }
+                if let Some(message) = menu_status() {
+                    p { class: "nav-user-menu-error", "{message}" }
+                }
+            }
         }
     }
 }

@@ -35,13 +35,13 @@
 .auth-panel--public::before {
   top: 8%;
   left: max(2%, calc(50% - 420px));
-  background: rgba(124, 154, 246, 0.26);
+  background: var(--bg-app-accent);
 }
 
 .auth-panel--public::after {
   right: max(2%, calc(50% - 400px));
   bottom: 10%;
-  background: rgba(83, 204, 255, 0.18);
+  background: var(--bg-app-accent-2);
 }
 
 .auth-page-shell {
@@ -62,6 +62,8 @@
 
 .auth-card {
   min-height: 100%;
+  box-shadow: var(--surface-shadow);
+  backdrop-filter: blur(18px);
 }
 
 .auth-card--wide {
@@ -105,13 +107,13 @@
 
 .auth-user-copy {
   margin: 0;
-  color: #ffffff;
+  color: var(--text-primary);
   font-weight: 600;
 }
 
 .auth-help {
   margin: 0;
-  color: #bec8dd;
+  color: var(--text-secondary);
   line-height: 1.6;
 }
 
@@ -120,9 +122,10 @@
   align-items: flex-start;
   gap: 12px;
   padding: 14px 16px;
-  border: 1px solid #2b3447;
+  border: 1px solid var(--border-soft);
   border-radius: 14px;
-  background: #151a24;
+  background: color-mix(in oklab, var(--bg-surface-elevated) 92%, transparent);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.08);
 }
 
 @media (max-width: 640px) {

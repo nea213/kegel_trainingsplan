@@ -1,10 +1,13 @@
 use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use crate::theme::ThemeMode;
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PublicUser {
     pub id: i32,
     pub username: String,
+    pub theme_mode: ThemeMode,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -77,6 +80,22 @@ pub async fn current_user() -> Result<Option<PublicUser>> {
 
     #[cfg(not(all(feature = "server", any(target_os = "linux", target_os = "macos", target_os = "windows"))))]
     {
+        Err(ServerFnError::new("The server feature is not enabled."))
+    }
+}
+
+#[post("/api/auth/theme")]
+pub async fn update_theme_mode(theme_mode: ThemeMode) -> Result<PublicUser> {
+    #[cfg(all(feature = "server", any(target_os = "linux", target_os = "macos", target_os = "windows")))]
+    {
+        return Ok(crate::server::auth::update_theme_mode(theme_mode)
+            .await
+            .map_err(ServerFnError::new)?);
+    }
+
+    #[cfg(not(all(feature = "server", any(target_os = "linux", target_os = "macos", target_os = "windows"))))]
+    {
+        let _ = theme_mode;
         Err(ServerFnError::new("The server feature is not enabled."))
     }
 }

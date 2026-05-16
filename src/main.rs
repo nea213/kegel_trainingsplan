@@ -1,11 +1,13 @@
 use dioxus::prelude::*;
 
+use theme::{ThemeContext, ThemeMode};
 use views::{Home, Login, Navbar, Register};
 
 mod auth;
 mod components;
 #[cfg(all(feature = "server", any(target_os = "linux", target_os = "macos", target_os = "windows")))]
 mod server;
+mod theme;
 mod views;
 
 #[derive(Debug, Clone, Routable, PartialEq)]
@@ -35,7 +37,31 @@ fn main() {
 #[component]
 fn App() -> Element {
     let auth_refresh = use_signal(|| 0_u64);
+    let theme_mode = use_signal(ThemeMode::default);
+    let synced_user_id = use_signal(|| None::<i32>);
     use_context_provider(|| auth_refresh);
+    use_context_provider(|| ThemeContext {
+        mode: theme_mode,
+        synced_user_id,
+    });
+
+    use_effect(move || {
+        let js_code = match theme_mode().document_theme() {
+            Some(theme) => format!(
+                r#"
+                document.documentElement.setAttribute("data-theme", "{theme}");
+                "#
+            ),
+            None => r#"
+                document.documentElement.removeAttribute("data-theme");
+            "#
+            .to_string(),
+        };
+
+        spawn(async move {
+            let _ = document::eval(&js_code);
+        });
+    });
 
     rsx! {
         document::Link { rel: "icon", href: FAVICON }

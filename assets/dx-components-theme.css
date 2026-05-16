@@ -37,36 +37,55 @@ html[data-theme="light"] [class~="dxc-system"] {
 }
 
 :root {
-  color-scheme: dark;
+  color-scheme: light dark;
 
   /* Primary colors */
-  --primary-color: var(--dark, #0f1116) var(--light, #0f1116);
-  --primary-color-1: var(--dark, #0b0e14) var(--light, #0b0e14);
-  --primary-color-2: var(--dark, #10141d) var(--light, #10141d);
-  --primary-color-3: var(--dark, #1a1f2b) var(--light, #1a1f2b);
-  --primary-color-4: var(--dark, #202737) var(--light, #202737);
-  --primary-color-5: var(--dark, #293247) var(--light, #293247);
-  --primary-color-6: var(--dark, #2b3447) var(--light, #2b3447);
-  --primary-color-7: var(--dark, #40506d) var(--light, #40506d);
+  --primary-color: var(--dark, #0b1020) var(--light, #f6f8fc);
+  --primary-color-1: var(--dark, #070c18) var(--light, #eef3f9);
+  --primary-color-2: var(--dark, #11192b) var(--light, #ffffff);
+  --primary-color-3: var(--dark, #162038) var(--light, #f1f5fb);
+  --primary-color-4: var(--dark, #1c2943) var(--light, #e5edf8);
+  --primary-color-5: var(--dark, #223252) var(--light, #d9e4f3);
+  --primary-color-6: var(--dark, #30415f) var(--light, #c8d5e7);
+  --primary-color-7: var(--dark, #4a5f85) var(--light, #afc1dd);
 
   /* Secondary colors */
-  --secondary-color: var(--dark, #ffffff) var(--light, #ffffff);
-  --secondary-color-1: var(--dark, #f8fbff) var(--light, #f8fbff);
-  --secondary-color-2: var(--dark, #eef3ff) var(--light, #eef3ff);
-  --secondary-color-3: var(--dark, #d8e1f0) var(--light, #d8e1f0);
-  --secondary-color-4: var(--dark, #c1cce0) var(--light, #c1cce0);
-  --secondary-color-5: var(--dark, #94a4c2) var(--light, #94a4c2);
-  --secondary-color-6: var(--dark, #6b7a95) var(--light, #6b7a95);
+  --secondary-color: var(--dark, #f5f7fb) var(--light, #152033);
+  --secondary-color-1: var(--dark, #f7f9fd) var(--light, #182338);
+  --secondary-color-2: var(--dark, #dce9ff) var(--light, #295ac7);
+  --secondary-color-3: var(--dark, #c3d3ec) var(--light, #3b5f96);
+  --secondary-color-4: var(--dark, #adbcd6) var(--light, #51617d);
+  --secondary-color-5: var(--dark, #7d8daa) var(--light, #71819b);
+  --secondary-color-6: var(--dark, #5d6e8b) var(--light, #8b9bb3);
 
   /* Highlight colors */
-  --focused-border-color: var(--dark, #7c9af6) var(--light, #7c9af6);
-  --primary-success-color: var(--dark, #10281c) var(--light, #10281c);
-  --secondary-success-color: var(--dark, #75d69f) var(--light, #75d69f);
-  --primary-warning-color: var(--dark, #33260f) var(--light, #33260f);
-  --secondary-warning-color: var(--dark, #f3c86d) var(--light, #f3c86d);
-  --primary-error-color: var(--dark, #4a1f27) var(--light, #4a1f27);
-  --secondary-error-color: var(--dark, #ef7f96) var(--light, #ef7f96);
+  --focused-border-color: var(--dark, #6ea8ff) var(--light, #4f8cff);
+  --primary-success-color: var(--dark, #123125) var(--light, #e3f5ea);
+  --secondary-success-color: var(--dark, #7bd9a5) var(--light, #257a4f);
+  --primary-warning-color: var(--dark, #382a14) var(--light, #fff1da);
+  --secondary-warning-color: var(--dark, #f1c975) var(--light, #a36b09);
+  --primary-error-color: var(--dark, #4b202b) var(--light, #fde7ec);
+  --secondary-error-color: var(--dark, #ef90a5) var(--light, #b04563);
   --contrast-error-color: var(--dark, var(--secondary-color-2)) var(--light, var(--secondary-color-2));
   --primary-info-color: var(--dark, var(--primary-color-4)) var(--light, var(--primary-color-4));
   --secondary-info-color: var(--dark, var(--secondary-color-3)) var(--light, var(--secondary-color-3));
+
+  /* App tokens */
+  --bg-app: var(--dark, #0b1020) var(--light, #f4f7fb);
+  --bg-app-accent: var(--dark, rgba(110, 168, 255, 0.18)) var(--light, rgba(79, 140, 255, 0.12));
+  --bg-app-accent-2: var(--dark, rgba(72, 208, 255, 0.14)) var(--light, rgba(112, 206, 255, 0.1));
+  --bg-surface: var(--dark, #12192b) var(--light, #ffffff);
+  --bg-surface-elevated: var(--dark, #17233a) var(--light, #eef3f9);
+  --bg-surface-muted: var(--dark, rgba(255, 255, 255, 0.03)) var(--light, rgba(33, 64, 120, 0.04));
+  --border-soft: var(--dark, #2b3a58) var(--light, #d4deec);
+  --border-strong: var(--dark, #405171) var(--light, #becce1);
+  --text-primary: var(--dark, #f5f7fb) var(--light, #152033);
+  --text-secondary: var(--dark, #b9c6db) var(--light, #56657f);
+  --text-muted: var(--dark, #8796b1) var(--light, #71809a);
+  --accent: var(--dark, #6ea8ff) var(--light, #4f8cff);
+  --accent-strong: var(--dark, #8fbaff) var(--light, #2f72f4);
+  --accent-soft: var(--dark, rgba(110, 168, 255, 0.14)) var(--light, rgba(79, 140, 255, 0.12));
+  --surface-shadow: var(--dark, 0 20px 60px rgba(0, 0, 0, 0.28)) var(--light, 0 18px 40px rgba(53, 79, 121, 0.12));
+  --nav-pill-bg: var(--dark, rgba(21, 29, 45, 0.86)) var(--light, rgba(255, 255, 255, 0.82));
+  --nav-pill-border: var(--dark, #2b3a58) var(--light, #d4deec);
 }

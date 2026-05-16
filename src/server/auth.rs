@@ -1,5 +1,9 @@
 use crate::auth::{LoginInput, PublicUser, RegisterInput};
-use crate::server::{db, entities::{session, user}};
+use crate::server::{
+    db,
+    entities::{session, user},
+};
+use crate::theme::ThemeMode;
 use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use dioxus_cookie::{self as cookie, CookieOptions, SameSite};
 use password_hash::SaltString;
@@ -38,6 +42,7 @@ pub async fn register(input: RegisterInput) -> Result<PublicUser, String> {
     let new_user = user::ActiveModel {
         username: Set(username),
         password_hash: Set(password_hash),
+        theme_mode: Set(ThemeMode::System.as_str().to_string()),
         created_at: Set(now),
         updated_at: Set(now),
         ..Default::default()
@@ -122,6 +127,41 @@ pub async fn logout() -> Result<(), String> {
     clear_session_cookie()
 }
 
+pub async fn update_theme_mode(theme_mode: ThemeMode) -> Result<PublicUser, String> {
+    let Some(session_id) = cookie::get_internal(SESSION_COOKIE) else {
+        return Err("Nicht angemeldet.".to_string());
+    };
+
+    let db = db::connection().await.map_err(db_error)?;
+    delete_expired_sessions(db).await.map_err(db_error)?;
+
+    let Some(active_session) = session::Entity::find_by_id(session_id)
+        .one(db)
+        .await
+        .map_err(db_error)?
+    else {
+        clear_session_cookie()?;
+        return Err("Nicht angemeldet.".to_string());
+    };
+
+    let Some(found_user) = user::Entity::find_by_id(active_session.user_id)
+        .one(db)
+        .await
+        .map_err(db_error)?
+    else {
+        clear_session_cookie()?;
+        return Err("Benutzer wurde nicht gefunden.".to_string());
+    };
+
+    let now = now_timestamp();
+    let mut active_user: user::ActiveModel = found_user.clone().into();
+    active_user.theme_mode = Set(theme_mode.as_str().to_string());
+    active_user.updated_at = Set(now);
+
+    let updated_user = active_user.update(db).await.map_err(db_error)?;
+    Ok(public_user(updated_user))
+}
+
 async fn create_session_for_user(
     db: &sea_orm::DatabaseConnection,
     user: &user::Model,
@@ -203,6 +243,7 @@ fn public_user(user: user::Model) -> PublicUser {
     PublicUser {
         id: user.id,
         username: user.username,
+        theme_mode: ThemeMode::from_storage(&user.theme_mode),
     }
 }
 

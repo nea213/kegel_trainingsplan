@@ -10,6 +10,7 @@ use crate::components::ui::card::{
 use crate::components::ui::input::Input;
 use crate::components::ui::label::Label;
 use crate::components::ui::separator::Separator;
+use crate::theme::ThemeContext;
 use crate::Route;
 use dioxus::prelude::*;
 
@@ -54,9 +55,20 @@ pub fn AccountPanel() -> Element {
     let auth_resource = use_auth_user_resource()?;
     let auth_state = auth_resource.read().as_ref().cloned();
     let mut auth_refresh = use_context::<Signal<u64>>();
+    let theme = use_context::<ThemeContext>();
     let nav = navigator();
     let mut status = use_signal(|| None::<(bool, String)>);
     let mut busy = use_signal(|| false);
+
+    let theme_sync_target = auth_state.as_ref().and_then(|state| state.clone());
+
+    use_effect(move || {
+        if let Some(user) = theme_sync_target.clone() {
+            if theme.needs_sync(user.id) {
+                theme.sync_authenticated_user(user.id, user.theme_mode);
+            }
+        }
+    });
 
     match auth_state {
         None => rsx! {
@@ -126,6 +138,7 @@ pub fn AccountPanel() -> Element {
                                         match result {
                                             Ok(()) => {
                                                 auth_refresh.with_mut(|value| *value += 1);
+                                                theme.reset_to_system();
                                                 let _ = nav.replace(Route::Login { return_to: None });
                                             }
                                             Err(error) => {
@@ -162,6 +175,7 @@ pub fn AccountPanel() -> Element {
 #[component]
 pub fn LoginPanel(return_to: Option<String>) -> Element {
     let mut auth_refresh = use_context::<Signal<u64>>();
+    let theme = use_context::<ThemeContext>();
     let nav = navigator();
     let login_target = return_to.clone();
     let register_target = return_to.clone();
@@ -236,7 +250,8 @@ pub fn LoginPanel(return_to: Option<String>) -> Element {
                                 busy.set(false);
 
                                 match result {
-                                    Ok(_) => {
+                                    Ok(user) => {
+                                        theme.set_authenticated_user_theme(user.id, user.theme_mode);
                                         login_password.set(String::new());
                                         auth_refresh.with_mut(|value| *value += 1);
                                         if let Some(path) = target {
@@ -279,6 +294,7 @@ pub fn LoginPanel(return_to: Option<String>) -> Element {
 #[component]
 pub fn RegisterPanel(return_to: Option<String>) -> Element {
     let mut auth_refresh = use_context::<Signal<u64>>();
+    let theme = use_context::<ThemeContext>();
     let nav = navigator();
     let register_target = return_to.clone();
     let login_target = return_to.clone();
@@ -352,7 +368,8 @@ pub fn RegisterPanel(return_to: Option<String>) -> Element {
                                 busy.set(false);
 
                                 match result {
-                                    Ok(_) => {
+                                    Ok(user) => {
+                                        theme.set_authenticated_user_theme(user.id, user.theme_mode);
                                         register_password.set(String::new());
                                         auth_refresh.with_mut(|value| *value += 1);
                                         if let Some(path) = target {
