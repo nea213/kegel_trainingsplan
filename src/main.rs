@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 
-use views::{Home, Navbar};
+use views::{Home, Login, Navbar, Register};
 
 mod auth;
 mod components;
@@ -11,6 +11,12 @@ mod views;
 #[derive(Debug, Clone, Routable, PartialEq)]
 #[rustfmt::skip]
 enum Route {
+    #[route("/login?:return_to")]
+    Login { return_to: Option<String> },
+
+    #[route("/register?:return_to")]
+    Register { return_to: Option<String> },
+
     #[layout(Navbar)]
         #[route("/")]
         Home {},

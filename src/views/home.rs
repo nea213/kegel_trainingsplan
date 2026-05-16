@@ -4,7 +4,7 @@ use crate::components::ui::item::{
     Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemSeparator, ItemTitle,
 };
 use crate::components::ui::separator::Separator;
-use crate::components::AuthPanel;
+use crate::components::AccountPanel;
 use dioxus::prelude::*;
 
 #[component]
@@ -72,6 +72,6 @@ pub fn Home() -> Element {
             decorative: true,
         }
 
-        AuthPanel {}
+        AccountPanel {}
     }
 }

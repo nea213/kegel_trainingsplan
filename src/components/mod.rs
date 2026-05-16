@@ -1,4 +1,4 @@
-mod auth;
+pub(crate) mod auth;
 pub mod ui;
 
-pub use auth::AuthPanel;
+pub use auth::{AccountPanel, LoginPanel, RegisterPanel};

@@ -1,8 +1,57 @@
-#auth-panel {
-  max-width: 980px;
-  margin: 24px auto 0 auto;
+.auth-panel {
+  width: min(100%, 980px);
   display: grid;
   gap: 18px;
+}
+
+.auth-panel--account {
+  margin: 24px auto 0 auto;
+}
+
+.auth-panel--public {
+  position: relative;
+  display: grid;
+  min-height: calc(100vh - 40px);
+  width: min(100%, 520px);
+  margin: 0 auto;
+  align-items: center;
+  align-content: center;
+  padding: 24px 0;
+  isolation: isolate;
+}
+
+.auth-panel--public::before,
+.auth-panel--public::after {
+  position: absolute;
+  z-index: -1;
+  width: 280px;
+  height: 280px;
+  border-radius: 999px;
+  opacity: 0.45;
+  filter: blur(70px);
+  content: "";
+}
+
+.auth-panel--public::before {
+  top: 8%;
+  left: max(2%, calc(50% - 420px));
+  background: rgba(124, 154, 246, 0.26);
+}
+
+.auth-panel--public::after {
+  right: max(2%, calc(50% - 400px));
+  bottom: 10%;
+  background: rgba(83, 204, 255, 0.18);
+}
+
+.auth-page-shell {
+  width: min(100%, 520px);
+  margin: 0 auto;
+}
+
+.auth-page .auth-panel {
+  max-width: none;
+  margin: 0;
 }
 
 .auth-grid {
@@ -17,6 +66,7 @@
 
 .auth-card--wide {
   max-width: 680px;
+  width: 100%;
 }
 
 .auth-card-title-row {
@@ -76,6 +126,15 @@
 }
 
 @media (max-width: 640px) {
+  .auth-panel--public {
+    min-height: calc(100vh - 32px);
+    padding: 12px 0;
+  }
+
+  .auth-page-shell {
+    width: 100%;
+  }
+
   .auth-user-row {
     align-items: flex-start;
   }
