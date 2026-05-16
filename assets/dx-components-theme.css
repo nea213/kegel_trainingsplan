@@ -1,0 +1,72 @@
+/* This file contains the theme variables for the styled dioxus-components components. You only
+ * need to import this file once in your project root.
+ */
+
+html[data-theme="dark"] {
+  --dark: initial;
+  --light: ;
+}
+
+html[data-theme="light"] {
+  --dark: ;
+  --light: initial;
+}
+
+html[data-theme="dark"] [class~="dxc-system"] {
+  --dxc-light-on: ;
+  --dxc-dark-on: initial;
+}
+
+html[data-theme="light"] [class~="dxc-system"] {
+  --dxc-light-on: initial;
+  --dxc-dark-on: ;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --dark: initial;
+    --light: ;
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --dark: ;
+    --light: initial;
+  }
+}
+
+:root {
+  color-scheme: dark;
+
+  /* Primary colors */
+  --primary-color: var(--dark, #0f1116) var(--light, #0f1116);
+  --primary-color-1: var(--dark, #0b0e14) var(--light, #0b0e14);
+  --primary-color-2: var(--dark, #10141d) var(--light, #10141d);
+  --primary-color-3: var(--dark, #1a1f2b) var(--light, #1a1f2b);
+  --primary-color-4: var(--dark, #202737) var(--light, #202737);
+  --primary-color-5: var(--dark, #293247) var(--light, #293247);
+  --primary-color-6: var(--dark, #2b3447) var(--light, #2b3447);
+  --primary-color-7: var(--dark, #40506d) var(--light, #40506d);
+
+  /* Secondary colors */
+  --secondary-color: var(--dark, #ffffff) var(--light, #ffffff);
+  --secondary-color-1: var(--dark, #f8fbff) var(--light, #f8fbff);
+  --secondary-color-2: var(--dark, #eef3ff) var(--light, #eef3ff);
+  --secondary-color-3: var(--dark, #d8e1f0) var(--light, #d8e1f0);
+  --secondary-color-4: var(--dark, #c1cce0) var(--light, #c1cce0);
+  --secondary-color-5: var(--dark, #94a4c2) var(--light, #94a4c2);
+  --secondary-color-6: var(--dark, #6b7a95) var(--light, #6b7a95);
+
+  /* Highlight colors */
+  --focused-border-color: var(--dark, #7c9af6) var(--light, #7c9af6);
+  --primary-success-color: var(--dark, #10281c) var(--light, #10281c);
+  --secondary-success-color: var(--dark, #75d69f) var(--light, #75d69f);
+  --primary-warning-color: var(--dark, #33260f) var(--light, #33260f);
+  --secondary-warning-color: var(--dark, #f3c86d) var(--light, #f3c86d);
+  --primary-error-color: var(--dark, #4a1f27) var(--light, #4a1f27);
+  --secondary-error-color: var(--dark, #ef7f96) var(--light, #ef7f96);
+  --contrast-error-color: var(--dark, var(--secondary-color-2)) var(--light, var(--secondary-color-2));
+  --primary-info-color: var(--dark, var(--primary-color-4)) var(--light, var(--primary-color-4));
+  --secondary-info-color: var(--dark, var(--secondary-color-3)) var(--light, var(--secondary-color-3));
+}

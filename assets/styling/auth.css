@@ -1,86 +1,87 @@
 #auth-panel {
   max-width: 980px;
-  margin: 40px auto 0 auto;
+  margin: 24px auto 0 auto;
+  display: grid;
+  gap: 18px;
 }
 
 .auth-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 20px;
 }
 
 .auth-card {
-  background: #1a1f2b;
-  border: 1px solid #2b3447;
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
+  min-height: 100%;
 }
 
 .auth-card--wide {
   max-width: 680px;
 }
 
-.auth-card h2 {
-  margin-top: 0;
-  margin-bottom: 8px;
+.auth-card-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.auth-copy {
-  color: #bec8dd;
-  line-height: 1.5;
-  margin-bottom: 18px;
+.auth-form {
+  display: grid;
+  gap: 16px;
 }
 
-.auth-input {
-  width: 100%;
-  box-sizing: border-box;
-  margin-bottom: 14px;
-  padding: 12px 14px;
-  border-radius: 10px;
-  border: 1px solid #344057;
-  background: #10141d;
-  color: #ffffff;
-  outline: none;
-}
-
-.auth-input:focus {
-  border-color: #7c9af6;
-}
-
-.auth-button {
-  border: none;
-  border-radius: 10px;
-  padding: 12px 16px;
-  background: #6d85c6;
-  color: #ffffff;
-  font-weight: 600;
-}
-
-.auth-button:hover {
-  cursor: pointer;
-  background: #7c94d9;
-}
-
-.auth-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-
-.auth-button--secondary {
-  background: #293247;
-}
-
-.auth-button--secondary:hover {
-  background: #33405b;
+.auth-field {
+  display: grid;
+  gap: 8px;
 }
 
 .auth-actions {
   display: flex;
   gap: 12px;
+  flex-wrap: wrap;
+}
+
+.auth-user-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.auth-user-meta {
+  display: grid;
+  gap: 6px;
+}
+
+.auth-user-copy {
+  margin: 0;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.auth-help {
+  margin: 0;
+  color: #bec8dd;
+  line-height: 1.6;
 }
 
 .auth-status {
-  margin-top: 16px;
-  color: #b7f0c5;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid #2b3447;
+  border-radius: 14px;
+  background: #151a24;
+}
+
+@media (max-width: 640px) {
+  .auth-user-row {
+    align-items: flex-start;
+  }
+
+  .auth-card-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
