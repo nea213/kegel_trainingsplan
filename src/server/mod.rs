@@ -1,6 +1,8 @@
 pub mod bootstrap;
 pub mod auth;
 pub mod clubs;
+pub mod club_memberships;
+pub mod dashboard;
 pub mod db;
 pub mod entities;
 pub mod group_trainers;

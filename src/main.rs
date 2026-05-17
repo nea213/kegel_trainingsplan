@@ -1,11 +1,13 @@
 use dioxus::prelude::*;
 
 use theme::{ThemeContext, ThemeMode};
-use views::{ClubDetail, Clubs, Home, Login, Navbar, Register};
+use views::{ClubDetail, Clubs, Dashboard, GroupDetail, Home, Login, Navbar, Register};
 
 mod auth;
+mod club_memberships;
 mod clubs;
 mod components;
+mod dashboard;
 mod group_trainers;
 mod groups;
 mod invitations;
@@ -26,11 +28,17 @@ enum Route {
     Register { return_to: Option<String> },
 
     #[layout(Navbar)]
+        #[route("/dashboard")]
+        Dashboard {},
+
         #[route("/clubs")]
         Clubs {},
 
         #[route("/clubs/:club_id")]
         ClubDetail { club_id: i32 },
+
+        #[route("/groups/:group_id")]
+        GroupDetail { group_id: i32 },
 
         #[route("/")]
         Home {},

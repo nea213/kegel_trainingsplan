@@ -7,6 +7,7 @@ use crate::components::ui::dropdown_menu::{
 };
 use crate::components::ui::navbar::{Navbar as UiNavbar, NavbarItem};
 use crate::components::ui::separator::Separator;
+use crate::dashboard::get_dashboard_context;
 use crate::theme::{ThemeContext, ThemeMode};
 use crate::{auth::current_user, auth::logout_user, auth::update_theme_mode, auth::PublicUser, Route};
 use dioxus::prelude::*;
@@ -23,7 +24,12 @@ pub fn Navbar() -> Element {
         let _ = auth_refresh();
         async move { current_user().await.ok().flatten() }
     })?;
+    let context_resource = use_server_future(move || {
+        let _ = auth_refresh();
+        async move { get_dashboard_context().await.ok() }
+    })?;
     let user_state = user_resource.read().as_ref().cloned();
+    let viewer_context = context_resource.read().as_ref().cloned().flatten();
     let user = user_state.clone().flatten();
     let theme_sync_target = user.clone();
     let login_target = sanitize_return_to(Some(current_route));
@@ -78,8 +84,8 @@ pub fn Navbar() -> Element {
                             style: "background: var(--nav-pill-bg); padding: 0.35rem; border-radius: 0.9rem; box-shadow: inset 0 0 0 1px var(--nav-pill-border);",
                             NavbarItem {
                                 index: 0usize,
-                                value: "home".to_string(),
-                                to: Route::Home {},
+                                value: "dashboard".to_string(),
+                                to: Route::Dashboard {},
                                 "Startseite"
                             }
                             if user.is_system_admin {
@@ -88,6 +94,15 @@ pub fn Navbar() -> Element {
                                     value: "clubs".to_string(),
                                     to: Route::Clubs {},
                                     "Vereine"
+                                }
+                            } else if let Some(context) = viewer_context.clone() {
+                                for (index, group) in context.managed_groups.into_iter().enumerate() {
+                                    NavbarItem {
+                                        index: index + 1usize,
+                                        value: format!("group-{}", group.group_id),
+                                        to: Route::GroupDetail { group_id: group.group_id },
+                                        "{group.group_name}"
+                                    }
                                 }
                             }
                         }
