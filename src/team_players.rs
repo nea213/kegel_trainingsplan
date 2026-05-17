@@ -1,43 +1,39 @@
 use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::{group_trainers::AssignedTrainer, groups::GroupSummary, team_players::AssignedPlayer, teams::TeamSummary};
-
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ClubSummary {
-    pub id: i32,
-    pub name: String,
+pub struct AssignedPlayer {
+    pub user_id: i32,
+    pub username: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ClubGroupWithTeams {
-    pub group: GroupSummary,
-    pub trainers: Vec<AssignedTrainer>,
-    pub teams: Vec<TeamWithPlayers>,
+pub struct AssignTeamPlayerInput {
+    pub team_id: i32,
+    pub username: String,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct TeamWithPlayers {
-    pub team: TeamSummary,
-    pub players: Vec<AssignedPlayer>,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ClubDetail {
-    pub club: ClubSummary,
-    pub groups: Vec<ClubGroupWithTeams>,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct CreateClubInput {
-    pub name: String,
-}
-
-#[post("/api/clubs/create")]
-pub async fn create_club(input: CreateClubInput) -> Result<ClubSummary> {
+#[post("/api/team-players/list")]
+pub async fn list_team_players(team_id: i32) -> Result<Vec<AssignedPlayer>> {
     #[cfg(all(feature = "server", any(target_os = "linux", target_os = "macos", target_os = "windows")))]
     {
-        return Ok(crate::server::clubs::create(input)
+        return Ok(crate::server::team_players::list(team_id)
+            .await
+            .map_err(ServerFnError::new)?);
+    }
+
+    #[cfg(not(all(feature = "server", any(target_os = "linux", target_os = "macos", target_os = "windows"))))]
+    {
+        let _ = team_id;
+        Err(ServerFnError::new("The server feature is not enabled."))
+    }
+}
+
+#[post("/api/team-players/assign")]
+pub async fn assign_team_player(input: AssignTeamPlayerInput) -> Result<AssignedPlayer> {
+    #[cfg(all(feature = "server", any(target_os = "linux", target_os = "macos", target_os = "windows")))]
+    {
+        return Ok(crate::server::team_players::assign(input)
             .await
             .map_err(ServerFnError::new)?);
     }
@@ -49,33 +45,18 @@ pub async fn create_club(input: CreateClubInput) -> Result<ClubSummary> {
     }
 }
 
-#[post("/api/clubs/list")]
-pub async fn list_clubs() -> Result<Vec<ClubSummary>> {
+#[post("/api/team-players/remove")]
+pub async fn remove_team_player(team_id: i32, user_id: i32) -> Result<()> {
     #[cfg(all(feature = "server", any(target_os = "linux", target_os = "macos", target_os = "windows")))]
     {
-        return Ok(crate::server::clubs::list()
+        return Ok(crate::server::team_players::remove(team_id, user_id)
             .await
             .map_err(ServerFnError::new)?);
     }
 
     #[cfg(not(all(feature = "server", any(target_os = "linux", target_os = "macos", target_os = "windows"))))]
     {
-        Err(ServerFnError::new("The server feature is not enabled."))
-    }
-}
-
-#[post("/api/clubs/detail")]
-pub async fn get_club_detail(club_id: i32) -> Result<ClubDetail> {
-    #[cfg(all(feature = "server", any(target_os = "linux", target_os = "macos", target_os = "windows")))]
-    {
-        return Ok(crate::server::clubs::detail(club_id)
-            .await
-            .map_err(ServerFnError::new)?);
-    }
-
-    #[cfg(not(all(feature = "server", any(target_os = "linux", target_os = "macos", target_os = "windows"))))]
-    {
-        let _ = club_id;
+        let _ = (team_id, user_id);
         Err(ServerFnError::new("The server feature is not enabled."))
     }
 }

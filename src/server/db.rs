@@ -146,6 +146,40 @@ async fn ensure_schema(db: &DatabaseConnection) -> Result<(), DbErr> {
 
     db.execute(Statement::from_string(
         db.get_database_backend(),
+        r#"
+        CREATE TABLE IF NOT EXISTS group_trainers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            group_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            created_at INTEGER NOT NULL,
+            FOREIGN KEY (group_id) REFERENCES club_groups(id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+            UNIQUE (group_id, user_id)
+        );
+        "#
+        .to_string(),
+    ))
+    .await?;
+
+    db.execute(Statement::from_string(
+        db.get_database_backend(),
+        r#"
+        CREATE TABLE IF NOT EXISTS team_players (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            team_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            created_at INTEGER NOT NULL,
+            FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+            UNIQUE (team_id, user_id)
+        );
+        "#
+        .to_string(),
+    ))
+    .await?;
+
+    db.execute(Statement::from_string(
+        db.get_database_backend(),
         "CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions (user_id);".to_string(),
     ))
     .await?;
@@ -171,6 +205,30 @@ async fn ensure_schema(db: &DatabaseConnection) -> Result<(), DbErr> {
     db.execute(Statement::from_string(
         db.get_database_backend(),
         "CREATE INDEX IF NOT EXISTS idx_teams_group_id ON teams (group_id);".to_string(),
+    ))
+    .await?;
+
+    db.execute(Statement::from_string(
+        db.get_database_backend(),
+        "CREATE INDEX IF NOT EXISTS idx_group_trainers_group_id ON group_trainers (group_id);".to_string(),
+    ))
+    .await?;
+
+    db.execute(Statement::from_string(
+        db.get_database_backend(),
+        "CREATE INDEX IF NOT EXISTS idx_group_trainers_user_id ON group_trainers (user_id);".to_string(),
+    ))
+    .await?;
+
+    db.execute(Statement::from_string(
+        db.get_database_backend(),
+        "CREATE INDEX IF NOT EXISTS idx_team_players_team_id ON team_players (team_id);".to_string(),
+    ))
+    .await?;
+
+    db.execute(Statement::from_string(
+        db.get_database_backend(),
+        "CREATE INDEX IF NOT EXISTS idx_team_players_user_id ON team_players (user_id);".to_string(),
     ))
     .await?;
 

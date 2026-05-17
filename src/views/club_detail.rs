@@ -8,7 +8,9 @@ use crate::components::ui::item::{
     Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemSeparator, ItemTitle,
 };
 use crate::components::ui::label::Label;
+use crate::group_trainers::{assign_group_trainer, remove_group_trainer, AssignGroupTrainerInput};
 use crate::groups::{create_group, CreateGroupInput};
+use crate::team_players::{assign_team_player, remove_team_player, AssignTeamPlayerInput};
 use crate::teams::{create_team, CreateTeamInput};
 use dioxus::prelude::*;
 
@@ -24,10 +26,15 @@ pub fn ClubDetail(club_id: i32) -> Element {
     let detail_state = detail_resource.read().as_ref().cloned();
     let mut group_name = use_signal(String::new);
     let mut group_sort_order = use_signal(|| "0".to_string());
-    let mut team_names = use_signal(std::collections::HashMap::<i32, String>::new);
+    let mut trainer_names = use_signal(std::collections::HashMap::<i32, String>::new);
+    let mut new_team_names = use_signal(std::collections::HashMap::<i32, String>::new);
+    let mut player_names = use_signal(std::collections::HashMap::<i32, String>::new);
     let mut team_sort_orders = use_signal(std::collections::HashMap::<i32, String>::new);
     let mut busy_group = use_signal(|| false);
+    let mut busy_trainer = use_signal(|| None::<i32>);
     let mut busy_team = use_signal(|| None::<i32>);
+    let mut removing_trainer = use_signal(|| None::<(i32, i32)>);
+    let mut removing_player = use_signal(|| None::<(i32, i32)>);
     let mut status = use_signal(|| None::<(bool, String)>);
 
     match user_state {
@@ -170,16 +177,73 @@ pub fn ClubDetail(club_id: i32) -> Element {
                                 } else {
                                     GroupList {
                                         detail,
-                                        team_names,
+                                        trainer_names,
+                                        new_team_names,
+                                        player_names,
                                         team_sort_orders,
+                                        busy_trainer,
                                         busy_team,
+                                        removing_trainer,
+                                        removing_player,
+                                        on_assign_trainer: move |group_id| {
+                                            if busy_trainer().is_some() {
+                                                return;
+                                            }
+
+                                            status.set(None);
+                                            let username = trainer_names().get(&group_id).cloned().unwrap_or_default();
+                                            spawn(async move {
+                                                busy_trainer.set(Some(group_id));
+                                                let result = assign_group_trainer(AssignGroupTrainerInput {
+                                                    group_id,
+                                                    username,
+                                                })
+                                                .await;
+                                                busy_trainer.set(None);
+
+                                                match result {
+                                                    Ok(trainer) => {
+                                                        trainer_names.with_mut(|entries| {
+                                                            entries.insert(group_id, String::new());
+                                                        });
+                                                        status.set(Some((true, format!("Trainer '{}' wurde zugewiesen.", trainer.username))));
+                                                        refresh.with_mut(|value| *value += 1);
+                                                    }
+                                                    Err(error) => {
+                                                        status.set(Some((false, format!("Trainer konnte nicht zugewiesen werden: {error}"))));
+                                                    }
+                                                }
+                                            });
+                                        },
+                                        on_remove_trainer: move |(group_id, user_id)| {
+                                            if removing_trainer().is_some() {
+                                                return;
+                                            }
+
+                                            status.set(None);
+                                            spawn(async move {
+                                                removing_trainer.set(Some((group_id, user_id)));
+                                                let result = remove_group_trainer(group_id, user_id).await;
+                                                removing_trainer.set(None);
+
+                                                match result {
+                                                    Ok(()) => {
+                                                        status.set(Some((true, "Trainer wurde entfernt.".to_string())));
+                                                        refresh.with_mut(|value| *value += 1);
+                                                    }
+                                                    Err(error) => {
+                                                        status.set(Some((false, format!("Trainer konnte nicht entfernt werden: {error}"))));
+                                                    }
+                                                }
+                                            });
+                                        },
                                         on_create_team: move |group_id| {
                                             if busy_team().is_some() {
                                                 return;
                                             }
 
                                             status.set(None);
-                                            let name = team_names().get(&group_id).cloned().unwrap_or_default();
+                                            let name = new_team_names().get(&group_id).cloned().unwrap_or_default();
                                             let sort_order = team_sort_orders().get(&group_id).cloned().unwrap_or_else(|| "0".to_string());
                                             spawn(async move {
                                                 let sort_order = match parse_sort_order(&sort_order) {
@@ -202,7 +266,7 @@ pub fn ClubDetail(club_id: i32) -> Element {
 
                                                 match result {
                                                     Ok(created_team) => {
-                                                        team_names.with_mut(|entries| {
+                                                        new_team_names.with_mut(|entries| {
                                                             entries.insert(group_id, String::new());
                                                         });
                                                         team_sort_orders.with_mut(|entries| {
@@ -213,6 +277,58 @@ pub fn ClubDetail(club_id: i32) -> Element {
                                                     }
                                                     Err(error) => {
                                                         status.set(Some((false, format!("Mannschaft konnte nicht angelegt werden: {error}"))));
+                                                    }
+                                                }
+                                            });
+                                        },
+                                        on_assign_player: move |team_id| {
+                                            if busy_team().is_some() {
+                                                return;
+                                            }
+
+                                            status.set(None);
+                                            let username = player_names().get(&team_id).cloned().unwrap_or_default();
+                                            spawn(async move {
+                                                busy_team.set(Some(team_id));
+                                                let result = assign_team_player(AssignTeamPlayerInput {
+                                                    team_id,
+                                                    username,
+                                                })
+                                                .await;
+                                                busy_team.set(None);
+
+                                                match result {
+                                                    Ok(player) => {
+                                                        player_names.with_mut(|entries| {
+                                                            entries.insert(team_id, String::new());
+                                                        });
+                                                        status.set(Some((true, format!("Spieler '{}' wurde zugewiesen.", player.username))));
+                                                        refresh.with_mut(|value| *value += 1);
+                                                    }
+                                                    Err(error) => {
+                                                        status.set(Some((false, format!("Spieler konnte nicht zugewiesen werden: {error}"))));
+                                                    }
+                                                }
+                                            });
+                                        },
+                                        on_remove_player: move |(team_id, user_id)| {
+                                            if removing_player().is_some() {
+                                                return;
+                                            }
+
+                                            status.set(None);
+                                            spawn(async move {
+                                                removing_player.set(Some((team_id, user_id)));
+                                                let result = remove_team_player(team_id, user_id).await;
+                                                removing_player.set(None);
+
+                                                match result {
+                                                    Ok(()) => {
+                                                        status.set(Some((true, "Spieler wurde entfernt.".to_string())));
+                                                        refresh.with_mut(|value| *value += 1);
+                                                    }
+                                                    Err(error) => {
+                                                        status.set(Some((false, format!("Spieler konnte nicht entfernt werden: {error}"))));
                                                     }
                                                 }
                                             });
@@ -241,10 +357,19 @@ pub fn ClubDetail(club_id: i32) -> Element {
 #[component]
 fn GroupList(
     detail: ClubDetailData,
-    team_names: Signal<std::collections::HashMap<i32, String>>,
+    trainer_names: Signal<std::collections::HashMap<i32, String>>,
+    new_team_names: Signal<std::collections::HashMap<i32, String>>,
+    player_names: Signal<std::collections::HashMap<i32, String>>,
     team_sort_orders: Signal<std::collections::HashMap<i32, String>>,
+    busy_trainer: Signal<Option<i32>>,
     busy_team: Signal<Option<i32>>,
+    removing_trainer: Signal<Option<(i32, i32)>>,
+    removing_player: Signal<Option<(i32, i32)>>,
+    on_assign_trainer: EventHandler<i32>,
+    on_remove_trainer: EventHandler<(i32, i32)>,
     on_create_team: EventHandler<i32>,
+    on_assign_player: EventHandler<i32>,
+    on_remove_player: EventHandler<(i32, i32)>,
 ) -> Element {
     let group_count = detail.groups.len();
 
@@ -255,14 +380,90 @@ fn GroupList(
                     ItemContent {
                         ItemTitle { "{section.group.name}" }
                         ItemDescription { "Sortierung: {section.group.sort_order}" }
+                        div { style: "display: grid; gap: 0.5rem; margin-top: 0.75rem;",
+                            p { class: "auth-help", "Trainer" }
+                            if section.trainers.is_empty() {
+                                p { class: "auth-help", "Noch keine Trainer zugewiesen." }
+                            } else {
+                                for trainer in section.trainers {
+                                    div { style: "display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.65rem 0.8rem; border-radius: 0.75rem; background: var(--accent);",
+                                        span { style: "font-weight: 600;", "{trainer.username}" }
+                                        Button {
+                                            variant: ButtonVariant::Ghost,
+                                            disabled: removing_trainer() == Some((section.group.id, trainer.user_id)),
+                                            onclick: move |_| on_remove_trainer.call((section.group.id, trainer.user_id)),
+                                            {if removing_trainer() == Some((section.group.id, trainer.user_id)) { "Entfernt..." } else { "Entfernen" }}
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        div { style: "display: grid; gap: 0.75rem; margin-top: 1rem;",
+                            div { class: "auth-field",
+                                Label { html_for: format!("trainer-name-{}", section.group.id), "Trainer per Benutzername" }
+                                Input {
+                                    id: format!("trainer-name-{}", section.group.id),
+                                    value: trainer_names().get(&section.group.id).cloned().unwrap_or_default(),
+                                    placeholder: "Benutzername",
+                                    disabled: busy_trainer() == Some(section.group.id),
+                                    oninput: move |event: FormEvent| {
+                                        trainer_names.with_mut(|entries| {
+                                            entries.insert(section.group.id, event.value());
+                                        });
+                                    },
+                                }
+                            }
+                        }
                         if section.teams.is_empty() {
                             p { class: "auth-help", "Noch keine Mannschaften angelegt." }
                         } else {
                             div { style: "display: grid; gap: 0.5rem; margin-top: 0.75rem;",
-                                for team in section.teams {
-                                    div { style: "display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.65rem 0.8rem; border-radius: 0.75rem; background: var(--accent);",
-                                        span { style: "font-weight: 600;", "{team.name}" }
-                                        Badge { variant: BadgeVariant::Outline, "Sortierung {team.sort_order}" }
+                                for team_section in section.teams {
+                                    div { style: "display: grid; gap: 0.75rem; padding: 0.85rem; border-radius: 0.85rem; background: var(--accent);",
+                                        div { style: "display: flex; align-items: center; justify-content: space-between; gap: 1rem;",
+                                            span { style: "font-weight: 600;", "{team_section.team.name}" }
+                                            Badge { variant: BadgeVariant::Outline, "Sortierung {team_section.team.sort_order}" }
+                                        }
+                                        div { style: "display: grid; gap: 0.5rem;",
+                                            p { class: "auth-help", "Spieler" }
+                                            if team_section.players.is_empty() {
+                                                p { class: "auth-help", "Noch keine Spieler zugewiesen." }
+                                            } else {
+                                                for player in team_section.players {
+                                                    div { style: "display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.65rem 0.8rem; border-radius: 0.75rem; background: var(--background);",
+                                                        span { style: "font-weight: 600;", "{player.username}" }
+                                                        Button {
+                                                            variant: ButtonVariant::Ghost,
+                                                            disabled: removing_player() == Some((team_section.team.id, player.user_id)),
+                                                            onclick: move |_| on_remove_player.call((team_section.team.id, player.user_id)),
+                                                            {if removing_player() == Some((team_section.team.id, player.user_id)) { "Entfernt..." } else { "Entfernen" }}
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        div { style: "display: grid; gap: 0.75rem;",
+                                            div { class: "auth-field",
+                                Label { html_for: format!("player-name-{}", team_section.team.id), "Spieler per Benutzername" }
+                                                Input {
+                                                    id: format!("player-name-{}", team_section.team.id),
+                                                    value: player_names().get(&team_section.team.id).cloned().unwrap_or_default(),
+                                                    placeholder: "Benutzername",
+                                                    disabled: busy_team() == Some(team_section.team.id),
+                                                    oninput: move |event: FormEvent| {
+                                                        player_names.with_mut(|entries| {
+                                                            entries.insert(team_section.team.id, event.value());
+                                                        });
+                                                    },
+                                                }
+                                            }
+                                            Button {
+                                                variant: ButtonVariant::Outline,
+                                                disabled: busy_team().is_some(),
+                                                onclick: move |_| on_assign_player.call(team_section.team.id),
+                                                {if busy_team() == Some(team_section.team.id) { "Speichert..." } else { "Spieler zuweisen" }}
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -272,11 +473,11 @@ fn GroupList(
                                 Label { html_for: format!("team-name-{}", section.group.id), "Neue Mannschaft" }
                                 Input {
                                     id: format!("team-name-{}", section.group.id),
-                                    value: team_names().get(&section.group.id).cloned().unwrap_or_default(),
+                                    value: new_team_names().get(&section.group.id).cloned().unwrap_or_default(),
                                     placeholder: "z. B. Maenner 1",
                                     disabled: busy_team() == Some(section.group.id),
                                     oninput: move |event: FormEvent| {
-                                        team_names.with_mut(|entries| {
+                                        new_team_names.with_mut(|entries| {
                                             entries.insert(section.group.id, event.value());
                                         });
                                     },
@@ -299,11 +500,19 @@ fn GroupList(
                         }
                     }
                     ItemActions {
-                        Button {
-                            variant: ButtonVariant::Outline,
-                            disabled: busy_team().is_some(),
-                            onclick: move |_| on_create_team.call(section.group.id),
-                            {if busy_team() == Some(section.group.id) { "Speichert..." } else { "Mannschaft anlegen" }}
+                        div { style: "display: grid; gap: 0.5rem;",
+                            Button {
+                                variant: ButtonVariant::Outline,
+                                disabled: busy_trainer().is_some(),
+                                onclick: move |_| on_assign_trainer.call(section.group.id),
+                                {if busy_trainer() == Some(section.group.id) { "Speichert..." } else { "Trainer zuweisen" }}
+                            }
+                            Button {
+                                variant: ButtonVariant::Outline,
+                                disabled: busy_team().is_some(),
+                                onclick: move |_| on_create_team.call(section.group.id),
+                                {if busy_team() == Some(section.group.id) { "Speichert..." } else { "Mannschaft anlegen" }}
+                            }
                         }
                     }
                 }

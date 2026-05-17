@@ -6,9 +6,11 @@ use views::{ClubDetail, Clubs, Home, Login, Navbar, Register};
 mod auth;
 mod clubs;
 mod components;
+mod group_trainers;
 mod groups;
 #[cfg(all(feature = "server", any(target_os = "linux", target_os = "macos", target_os = "windows")))]
 mod server;
+mod team_players;
 mod teams;
 mod theme;
 mod views;

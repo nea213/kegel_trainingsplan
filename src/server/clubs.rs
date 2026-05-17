@@ -1,12 +1,14 @@
 use crate::{
-    clubs::{ClubDetail, ClubGroupWithTeams, ClubSummary, CreateClubInput},
+    clubs::{ClubDetail, ClubGroupWithTeams, ClubSummary, CreateClubInput, TeamWithPlayers},
+    group_trainers::AssignedTrainer,
     groups::GroupSummary,
     server::{
         auth::now_timestamp,
         db,
-        entities::{club, club_group, team},
+        entities::{club, club_group, group_trainer, team, team_player, user},
         permissions,
     },
+    team_players::AssignedPlayer,
     teams::TeamSummary,
 };
 use sea_orm::{
@@ -73,18 +75,92 @@ pub async fn detail(club_id: i32) -> Result<ClubDetail, String> {
         .await
         .map_err(db_error)?;
 
-    let mut teams_by_group = HashMap::<i32, Vec<TeamSummary>>::new();
+    let group_ids = groups.iter().map(|group| group.id).collect::<Vec<_>>();
+    let team_ids = teams.iter().map(|team| team.id).collect::<Vec<_>>();
+
+    let group_trainers = if group_ids.is_empty() {
+        Vec::new()
+    } else {
+        group_trainer::Entity::find()
+            .filter(group_trainer::Column::GroupId.is_in(group_ids.clone()))
+            .order_by_asc(group_trainer::Column::CreatedAt)
+            .all(db)
+            .await
+            .map_err(db_error)?
+    };
+
+    let team_players = if team_ids.is_empty() {
+        Vec::new()
+    } else {
+        team_player::Entity::find()
+            .filter(team_player::Column::TeamId.is_in(team_ids.clone()))
+            .order_by_asc(team_player::Column::CreatedAt)
+            .all(db)
+            .await
+            .map_err(db_error)?
+    };
+
+    let user_ids = group_trainers
+        .iter()
+        .map(|membership| membership.user_id)
+        .chain(team_players.iter().map(|membership| membership.user_id))
+        .collect::<Vec<_>>();
+
+    let users = if user_ids.is_empty() {
+        Vec::new()
+    } else {
+        user::Entity::find()
+            .filter(user::Column::Id.is_in(user_ids))
+            .all(db)
+            .await
+            .map_err(db_error)?
+    };
+
+    let mut users_by_id = HashMap::new();
+    for user in users {
+        users_by_id.insert(user.id, user);
+    }
+
+    let mut trainers_by_group = HashMap::<i32, Vec<AssignedTrainer>>::new();
+    for membership in group_trainers {
+        let found_user = users_by_id
+            .get(&membership.user_id)
+            .cloned()
+            .ok_or_else(|| "Ein zugewiesener Trainer wurde nicht gefunden.".to_string())?;
+        trainers_by_group
+            .entry(membership.group_id)
+            .or_default()
+            .push(assigned_trainer(found_user));
+    }
+
+    let mut players_by_team = HashMap::<i32, Vec<AssignedPlayer>>::new();
+    for membership in team_players {
+        let found_user = users_by_id
+            .get(&membership.user_id)
+            .cloned()
+            .ok_or_else(|| "Ein zugewiesener Spieler wurde nicht gefunden.".to_string())?;
+        players_by_team
+            .entry(membership.team_id)
+            .or_default()
+            .push(assigned_player(found_user));
+    }
+
+    let mut teams_by_group = HashMap::<i32, Vec<TeamWithPlayers>>::new();
     for team in teams {
         teams_by_group
             .entry(team.group_id)
             .or_default()
-            .push(team_summary(team));
+            .push(TeamWithPlayers {
+                players: players_by_team.remove(&team.id).unwrap_or_default(),
+                team: team_summary(team),
+            });
     }
 
     let groups = groups
         .into_iter()
         .map(|group| ClubGroupWithTeams {
             group: group_summary(group.clone()),
+            trainers: trainers_by_group.remove(&group.id).unwrap_or_default(),
             teams: teams_by_group.remove(&group.id).unwrap_or_default(),
         })
         .collect();
@@ -132,6 +208,20 @@ fn team_summary(team: team::Model) -> TeamSummary {
         group_id: team.group_id,
         name: team.name,
         sort_order: team.sort_order,
+    }
+}
+
+fn assigned_trainer(user: user::Model) -> AssignedTrainer {
+    AssignedTrainer {
+        user_id: user.id,
+        username: user.username,
+    }
+}
+
+fn assigned_player(user: user::Model) -> AssignedPlayer {
+    AssignedPlayer {
+        user_id: user.id,
+        username: user.username,
     }
 }
 
