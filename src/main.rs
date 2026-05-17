@@ -30,6 +30,9 @@ const MAIN_CSS: Asset = asset!("/assets/styling/main.css");
 const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
 
 fn main() {
+    #[cfg(all(feature = "server", any(target_os = "linux", target_os = "macos", target_os = "windows")))]
+    let _ = dotenvy::dotenv();
+
     dioxus_cookie::init();
     dioxus::launch(App);
 }

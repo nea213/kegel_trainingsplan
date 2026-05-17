@@ -1,3 +1,4 @@
+use crate::server::bootstrap;
 use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbErr, Statement};
 use std::{env, fs, path::PathBuf};
 use tokio::sync::OnceCell;
@@ -11,6 +12,7 @@ pub async fn connection() -> Result<&'static DatabaseConnection, DbErr> {
 
         let db = Database::connect(&database_url).await?;
         ensure_schema(&db).await?;
+        bootstrap::ensure_system_admin(&db).await?;
 
         Ok(db)
     })
@@ -66,6 +68,7 @@ async fn ensure_schema(db: &DatabaseConnection) -> Result<(), DbErr> {
             username TEXT NOT NULL UNIQUE,
             password_hash TEXT NOT NULL,
             theme_mode TEXT NOT NULL DEFAULT 'system',
+            is_system_admin BOOLEAN NOT NULL DEFAULT 0,
             created_at INTEGER NOT NULL,
             updated_at INTEGER NOT NULL
         );
@@ -102,6 +105,7 @@ async fn ensure_schema(db: &DatabaseConnection) -> Result<(), DbErr> {
     .await?;
 
     ensure_user_theme_mode_column(db).await?;
+    ensure_user_is_system_admin_column(db).await?;
 
     Ok(())
 }
@@ -123,6 +127,30 @@ async fn ensure_user_theme_mode_column(db: &DatabaseConnection) -> Result<(), Db
         db.execute(Statement::from_string(
             db.get_database_backend(),
             "ALTER TABLE users ADD COLUMN theme_mode TEXT NOT NULL DEFAULT 'system';".to_string(),
+        ))
+        .await?;
+    }
+
+    Ok(())
+}
+
+async fn ensure_user_is_system_admin_column(db: &DatabaseConnection) -> Result<(), DbErr> {
+    let statement = Statement::from_string(
+        db.get_database_backend(),
+        "PRAGMA table_info(users);".to_string(),
+    );
+    let columns = db.query_all(statement).await?;
+
+    let has_is_system_admin = columns.iter().any(|row| {
+        row.try_get::<String>("", "name")
+            .map(|name| name == "is_system_admin")
+            .unwrap_or(false)
+    });
+
+    if !has_is_system_admin {
+        db.execute(Statement::from_string(
+            db.get_database_backend(),
+            "ALTER TABLE users ADD COLUMN is_system_admin BOOLEAN NOT NULL DEFAULT 0;".to_string(),
         ))
         .await?;
     }

@@ -3364,6 +3364,7 @@ dependencies = [
  "dioxus-cookie",
  "dioxus-icons",
  "dioxus-primitives",
+ "dotenvy",
  "palette",
  "password-hash",
  "rand_core 0.6.4",

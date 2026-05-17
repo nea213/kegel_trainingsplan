@@ -8,6 +8,7 @@ pub struct PublicUser {
     pub id: i32,
     pub username: String,
     pub theme_mode: ThemeMode,
+    pub is_system_admin: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

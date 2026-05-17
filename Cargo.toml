@@ -22,6 +22,7 @@ password-hash = { version = "0.5", features = ["rand_core"], optional = true }
 rand_core = { version = "0.6", features = ["getrandom"], optional = true }
 tokio = { version = "1", features = ["sync"], optional = true }
 uuid = { version = "1", features = ["v4"], optional = true }
+dotenvy = { version = "0.15", optional = true }
 
 [features]
 default = ["web"]
@@ -32,4 +33,4 @@ desktop = ["dioxus/desktop", "dioxus-cookie/desktop"]
 # The feature that are only required for the mobile = ["dioxus/mobile"] build target should be optional and only enabled in the mobile = ["dioxus/mobile"] feature
 mobile = ["dioxus/mobile", "dioxus-cookie/mobile-sim"]
 # The feature that are only required for the server = ["dioxus/server"] build target should be optional and only enabled in the server = ["dioxus/server"] feature
-server = ["dioxus/server", "dioxus-cookie/server", "dep:sea-orm", "dep:argon2", "dep:password-hash", "dep:rand_core", "dep:tokio", "dep:uuid"]
+server = ["dioxus/server", "dioxus-cookie/server", "dep:sea-orm", "dep:argon2", "dep:password-hash", "dep:rand_core", "dep:tokio", "dep:uuid", "dep:dotenvy"]

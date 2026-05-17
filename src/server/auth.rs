@@ -43,6 +43,7 @@ pub async fn register(input: RegisterInput) -> Result<PublicUser, String> {
         username: Set(username),
         password_hash: Set(password_hash),
         theme_mode: Set(ThemeMode::System.as_str().to_string()),
+        is_system_admin: Set(false),
         created_at: Set(now),
         updated_at: Set(now),
         ..Default::default()
@@ -192,7 +193,7 @@ async fn delete_expired_sessions(db: &sea_orm::DatabaseConnection) -> Result<(),
     Ok(())
 }
 
-fn normalize_username(value: &str) -> Result<String, String> {
+pub(crate) fn normalize_username(value: &str) -> Result<String, String> {
     let username = value.trim().to_lowercase();
 
     if username.len() < MIN_USERNAME_LEN {
@@ -208,7 +209,7 @@ fn normalize_username(value: &str) -> Result<String, String> {
     Ok(username)
 }
 
-fn validate_password(password: &str) -> Result<(), String> {
+pub(crate) fn validate_password(password: &str) -> Result<(), String> {
     if password.len() < MIN_PASSWORD_LEN {
         return Err(format!(
             "Das Passwort muss mindestens {MIN_PASSWORD_LEN} Zeichen lang sein."
@@ -222,7 +223,7 @@ fn validate_password(password: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn hash_password(password: &str) -> Result<String, String> {
+pub(crate) fn hash_password(password: &str) -> Result<String, String> {
     let salt = SaltString::generate(&mut OsRng);
 
     Argon2::default()
@@ -244,6 +245,7 @@ fn public_user(user: user::Model) -> PublicUser {
         id: user.id,
         username: user.username,
         theme_mode: ThemeMode::from_storage(&user.theme_mode),
+        is_system_admin: user.is_system_admin,
     }
 }
 
@@ -280,7 +282,7 @@ fn db_error(error: impl std::fmt::Display) -> String {
     error.to_string()
 }
 
-fn now_timestamp() -> i64 {
+pub(crate) fn now_timestamp() -> i64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default()
