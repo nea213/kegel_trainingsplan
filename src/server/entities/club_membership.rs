@@ -1,15 +1,13 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
-#[sea_orm(table_name = "club_groups")]
+#[sea_orm(table_name = "club_memberships")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     pub club_id: i32,
-    pub name: String,
-    pub sort_order: i32,
+    pub user_id: i32,
     pub created_at: i64,
-    pub updated_at: i64,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -22,12 +20,14 @@ pub enum Relation {
         on_delete = "Cascade"
     )]
     Club,
-    #[sea_orm(has_many = "super::group_trainer::Entity")]
-    GroupTrainer,
-    #[sea_orm(has_many = "super::invitation::Entity")]
-    Invitation,
-    #[sea_orm(has_many = "super::team::Entity")]
-    Team,
+    #[sea_orm(
+        belongs_to = "super::user::Entity",
+        from = "Column::UserId",
+        to = "super::user::Column::Id",
+        on_update = "Cascade",
+        on_delete = "Cascade"
+    )]
+    User,
 }
 
 impl Related<super::club::Entity> for Entity {
@@ -36,21 +36,9 @@ impl Related<super::club::Entity> for Entity {
     }
 }
 
-impl Related<super::team::Entity> for Entity {
+impl Related<super::user::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::Team.def()
-    }
-}
-
-impl Related<super::group_trainer::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::GroupTrainer.def()
-    }
-}
-
-impl Related<super::invitation::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::Invitation.def()
+        Relation::User.def()
     }
 }
 

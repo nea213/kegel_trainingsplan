@@ -5,6 +5,7 @@ pub mod db;
 pub mod entities;
 pub mod group_trainers;
 pub mod groups;
+pub mod invitations;
 pub mod permissions;
 pub mod team_players;
 pub mod teams;

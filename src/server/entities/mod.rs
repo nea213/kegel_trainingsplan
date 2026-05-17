@@ -1,6 +1,8 @@
 pub mod club;
+pub mod club_membership;
 pub mod club_group;
 pub mod group_trainer;
+pub mod invitation;
 pub mod session;
 pub mod team;
 pub mod team_player;

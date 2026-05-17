@@ -1,6 +1,7 @@
 use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use crate::invitations::InvitationRegistrationInput;
 use crate::theme::ThemeMode;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -13,6 +14,7 @@ pub struct PublicUser {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RegisterInput {
+    pub invitation_code: String,
     pub username: String,
     pub password: String,
 }
@@ -36,6 +38,16 @@ pub async fn register_user(input: RegisterInput) -> Result<PublicUser> {
     {
         let _ = input;
         Err(ServerFnError::new("The server feature is not enabled."))
+    }
+}
+
+impl From<RegisterInput> for InvitationRegistrationInput {
+    fn from(value: RegisterInput) -> Self {
+        Self {
+            invitation_code: value.invitation_code,
+            username: value.username,
+            password: value.password,
+        }
     }
 }
 

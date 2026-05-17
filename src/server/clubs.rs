@@ -2,10 +2,11 @@ use crate::{
     clubs::{ClubDetail, ClubGroupWithTeams, ClubSummary, CreateClubInput, TeamWithPlayers},
     group_trainers::AssignedTrainer,
     groups::GroupSummary,
+    invitations::InvitationSummary,
     server::{
         auth::now_timestamp,
         db,
-        entities::{club, club_group, group_trainer, team, team_player, user},
+        entities::{club, club_group, group_trainer, invitation, team, team_player, user},
         permissions,
     },
     team_players::AssignedPlayer,
@@ -71,6 +72,15 @@ pub async fn detail(club_id: i32) -> Result<ClubDetail, String> {
         .filter(team::Column::ClubId.eq(club_id))
         .order_by_asc(team::Column::SortOrder)
         .order_by_asc(team::Column::Name)
+        .all(db)
+        .await
+        .map_err(db_error)?;
+
+    let invitations = invitation::Entity::find()
+        .filter(invitation::Column::ClubId.eq(club_id))
+        .filter(invitation::Column::RevokedAt.is_null())
+        .filter(invitation::Column::UsedAt.is_null())
+        .order_by_desc(invitation::Column::CreatedAt)
         .all(db)
         .await
         .map_err(db_error)?;
@@ -156,10 +166,21 @@ pub async fn detail(club_id: i32) -> Result<ClubDetail, String> {
             });
     }
 
+    let mut invitations_by_group = HashMap::<i32, Vec<InvitationSummary>>::new();
+    for invitation in invitations {
+        if let Some(group_id) = invitation.group_id {
+            invitations_by_group
+                .entry(group_id)
+                .or_default()
+                .push(invitation_summary(invitation));
+        }
+    }
+
     let groups = groups
         .into_iter()
         .map(|group| ClubGroupWithTeams {
             group: group_summary(group.clone()),
+            invitations: invitations_by_group.remove(&group.id).unwrap_or_default(),
             trainers: trainers_by_group.remove(&group.id).unwrap_or_default(),
             teams: teams_by_group.remove(&group.id).unwrap_or_default(),
         })
@@ -222,6 +243,21 @@ fn assigned_player(user: user::Model) -> AssignedPlayer {
     AssignedPlayer {
         user_id: user.id,
         username: user.username,
+    }
+}
+
+fn invitation_summary(invitation: invitation::Model) -> InvitationSummary {
+    InvitationSummary {
+        id: invitation.id,
+        club_id: invitation.club_id,
+        group_id: invitation.group_id,
+        role: match invitation.target_role.trim().to_ascii_lowercase().as_str() {
+            "trainer" => crate::invitations::InvitationRole::Trainer,
+            _ => crate::invitations::InvitationRole::Player,
+        },
+        expires_at: invitation.expires_at,
+        revoked_at: invitation.revoked_at,
+        used_at: invitation.used_at,
     }
 }
 

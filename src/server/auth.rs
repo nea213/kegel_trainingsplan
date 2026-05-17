@@ -2,6 +2,7 @@ use crate::auth::{LoginInput, PublicUser, RegisterInput};
 use crate::server::{
     db,
     entities::{session, user},
+    invitations,
 };
 use crate::theme::ThemeMode;
 use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
@@ -20,37 +21,14 @@ const MIN_USERNAME_LEN: usize = 3;
 const MIN_PASSWORD_LEN: usize = 8;
 
 pub async fn register(input: RegisterInput) -> Result<PublicUser, String> {
-    let username = normalize_username(&input.username)?;
-    validate_password(&input.password)?;
-
     let db = db::connection().await.map_err(db_error)?;
     delete_expired_sessions(db).await.map_err(db_error)?;
-
-    let existing = user::Entity::find()
-        .filter(user::Column::Username.eq(username.clone()))
-        .one(db)
-        .await
-        .map_err(db_error)?;
-
-    if existing.is_some() {
-        return Err("Dieser Benutzername ist bereits vergeben.".to_string());
-    }
-
-    let password_hash = hash_password(&input.password)?;
-    let now = now_timestamp();
-
-    let new_user = user::ActiveModel {
-        username: Set(username),
-        password_hash: Set(password_hash),
-        theme_mode: Set(ThemeMode::System.as_str().to_string()),
-        is_system_admin: Set(false),
-        created_at: Set(now),
-        updated_at: Set(now),
-        ..Default::default()
-    }
-    .insert(db)
-    .await
-    .map_err(db_error)?;
+    let new_user = invitations::register_with_invitation(
+        &input.invitation_code,
+        &input.username,
+        &input.password,
+    )
+    .await?;
 
     create_session_for_user(db, &new_user).await
 }

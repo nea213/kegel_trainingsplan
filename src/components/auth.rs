@@ -10,6 +10,7 @@ use crate::components::ui::card::{
 use crate::components::ui::input::Input;
 use crate::components::ui::label::Label;
 use crate::components::ui::separator::Separator;
+use crate::invitations::preview_invitation;
 use crate::theme::ThemeContext;
 use crate::Route;
 use dioxus::prelude::*;
@@ -299,7 +300,9 @@ pub fn RegisterPanel(return_to: Option<String>) -> Element {
     let register_target = return_to.clone();
     let login_target = return_to.clone();
     let mut status = use_signal(|| None::<String>);
+    let mut invitation_preview = use_signal(|| None::<Result<String, String>>);
     let mut busy = use_signal(|| false);
+    let mut register_invitation_code = use_signal(String::new);
     let mut register_username = use_signal(String::new);
     let mut register_password = use_signal(String::new);
 
@@ -319,11 +322,53 @@ pub fn RegisterPanel(return_to: Option<String>) -> Element {
                         }
                     }
                     CardDescription {
-                        "Lege einen neuen Benutzer an. Nach erfolgreicher Registrierung wirst du direkt eingeloggt."
+                        "Registrierungen laufen nur mit gueltigem Einladungscode. Nach erfolgreicher Registrierung wirst du direkt eingeloggt."
                     }
                 }
                 CardContent {
                     div { class: "auth-form",
+                        div { class: "auth-field",
+                            Label { html_for: "register-invitation-code", "Einladungscode" }
+                            Input {
+                                id: "register-invitation-code",
+                                value: register_invitation_code(),
+                                placeholder: "Einladungscode",
+                                disabled: busy(),
+                                oninput: move |event: FormEvent| {
+                                    let value = event.value();
+                                    register_invitation_code.set(value.clone());
+
+                                    if value.trim().len() < 8 {
+                                        invitation_preview.set(None);
+                                        return;
+                                    }
+
+                                    spawn(async move {
+                                        let preview = preview_invitation(value)
+                                            .await
+                                            .map(|preview| {
+                                                let role = match preview.role {
+                                                    crate::invitations::InvitationRole::Trainer => "Trainer",
+                                                    crate::invitations::InvitationRole::Player => "Spieler",
+                                                };
+
+                                                match preview.group_name {
+                                                    Some(group_name) => format!(
+                                                        "Einladung fuer {role} in {group_name} bei {}.",
+                                                        preview.club_name
+                                                    ),
+                                                    None => format!(
+                                                        "Einladung fuer {role} im Verein {}.",
+                                                        preview.club_name
+                                                    ),
+                                                }
+                                            })
+                                            .map_err(|error| error.to_string());
+                                        invitation_preview.set(Some(preview));
+                                    });
+                                },
+                            }
+                        }
                         div { class: "auth-field",
                             Label { html_for: "register-username", "Benutzername" }
                             Input {
@@ -345,6 +390,22 @@ pub fn RegisterPanel(return_to: Option<String>) -> Element {
                                 oninput: move |event: FormEvent| register_password.set(event.value()),
                             }
                         }
+                        if let Some(preview) = invitation_preview() {
+                            match preview {
+                                Ok(message) => rsx! {
+                                    div { class: "auth-status",
+                                        Badge { variant: BadgeVariant::Secondary, "Einladung" }
+                                        p { class: "auth-help", "{message}" }
+                                    }
+                                },
+                                Err(error) => rsx! {
+                                    div { class: "auth-status",
+                                        Badge { variant: BadgeVariant::Destructive, "Fehler" }
+                                        p { class: "auth-help", "{error}" }
+                                    }
+                                },
+                            }
+                        }
                     }
                 }
                 CardFooter { style: "flex-direction: column; align-items: stretch; gap: 0.75rem; margin-top: 0.75rem;",
@@ -361,6 +422,7 @@ pub fn RegisterPanel(return_to: Option<String>) -> Element {
                             spawn(async move {
                                 busy.set(true);
                                 let result = register_user(RegisterInput {
+                                    invitation_code: register_invitation_code(),
                                     username: register_username(),
                                     password: register_password(),
                                 })
@@ -370,7 +432,9 @@ pub fn RegisterPanel(return_to: Option<String>) -> Element {
                                 match result {
                                     Ok(user) => {
                                         theme.set_authenticated_user_theme(user.id, user.theme_mode);
+                                        register_invitation_code.set(String::new());
                                         register_password.set(String::new());
+                                        invitation_preview.set(None);
                                         auth_refresh.with_mut(|value| *value += 1);
                                         if let Some(path) = target {
                                             let _ = nav.replace(path);

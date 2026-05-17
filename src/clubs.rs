@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::{group_trainers::AssignedTrainer, groups::GroupSummary, team_players::AssignedPlayer, teams::TeamSummary};
+use crate::{group_trainers::AssignedTrainer, groups::GroupSummary, invitations::InvitationSummary, team_players::AssignedPlayer, teams::TeamSummary};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ClubSummary {
@@ -12,6 +12,7 @@ pub struct ClubSummary {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ClubGroupWithTeams {
     pub group: GroupSummary,
+    pub invitations: Vec<InvitationSummary>,
     pub trainers: Vec<AssignedTrainer>,
     pub teams: Vec<TeamWithPlayers>,
 }

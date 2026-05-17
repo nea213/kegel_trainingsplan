@@ -8,6 +8,10 @@ use crate::components::ui::item::{
     Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemSeparator, ItemTitle,
 };
 use crate::components::ui::label::Label;
+use crate::invitations::{
+    create_invitation, revoke_invitation, CreateInvitationInput, CreatedInvitation,
+    InvitationRole,
+};
 use crate::group_trainers::{assign_group_trainer, remove_group_trainer, AssignGroupTrainerInput};
 use crate::groups::{create_group, CreateGroupInput};
 use crate::team_players::{assign_team_player, remove_team_player, AssignTeamPlayerInput};
@@ -26,13 +30,17 @@ pub fn ClubDetail(club_id: i32) -> Element {
     let detail_state = detail_resource.read().as_ref().cloned();
     let mut group_name = use_signal(String::new);
     let mut group_sort_order = use_signal(|| "0".to_string());
+    let mut invitation_days = use_signal(|| "7".to_string());
+    let mut latest_invitation = use_signal(|| None::<CreatedInvitation>);
     let mut trainer_names = use_signal(std::collections::HashMap::<i32, String>::new);
     let mut new_team_names = use_signal(std::collections::HashMap::<i32, String>::new);
     let mut player_names = use_signal(std::collections::HashMap::<i32, String>::new);
     let mut team_sort_orders = use_signal(std::collections::HashMap::<i32, String>::new);
     let mut busy_group = use_signal(|| false);
+    let mut busy_invitation = use_signal(|| None::<Option<i32>>);
     let mut busy_trainer = use_signal(|| None::<i32>);
     let mut busy_team = use_signal(|| None::<i32>);
+    let mut revoking_invitation = use_signal(|| None::<i32>);
     let mut removing_trainer = use_signal(|| None::<(i32, i32)>);
     let mut removing_player = use_signal(|| None::<(i32, i32)>);
     let mut status = use_signal(|| None::<(bool, String)>);
@@ -93,6 +101,70 @@ pub fn ClubDetail(club_id: i32) -> Element {
                                 }
                             }
                             CardContent {
+                                div { style: "display: grid; gap: 0.75rem; margin-bottom: 1rem;",
+                                    div { class: "auth-field",
+                                        Label { html_for: "player-invitation-days", "Spieler-Code gueltig fuer Tage" }
+                                        Input {
+                                            id: "player-invitation-days",
+                                            value: invitation_days(),
+                                            placeholder: "7",
+                                            disabled: busy_invitation() == Some(None),
+                                            oninput: move |event: FormEvent| invitation_days.set(event.value()),
+                                        }
+                                    }
+                                    Button {
+                                        variant: ButtonVariant::Outline,
+                                        disabled: busy_invitation().is_some(),
+                                        onclick: move |_| {
+                                            if busy_invitation().is_some() {
+                                                return;
+                                            }
+
+                                            status.set(None);
+                                            latest_invitation.set(None);
+                                            let expires_in_days = parse_invitation_days(&invitation_days());
+                                            spawn(async move {
+                                                let expires_in_days = match expires_in_days {
+                                                    Ok(days) => days,
+                                                    Err(error) => {
+                                                        status.set(Some((false, format!("Spieler-Code konnte nicht erstellt werden: {error}"))));
+                                                        return;
+                                                    }
+                                                };
+
+                                                busy_invitation.set(Some(None));
+                                                let result = create_invitation(CreateInvitationInput {
+                                                    club_id,
+                                                    group_id: None,
+                                                    role: InvitationRole::Player,
+                                                    expires_in_days,
+                                                })
+                                                .await;
+                                                busy_invitation.set(None);
+
+                                                match result {
+                                                    Ok(created_invitation) => {
+                                                        latest_invitation.set(Some(created_invitation.clone()));
+                                                        status.set(Some((true, "Spieler-Code fuer den Verein wurde erstellt.".to_string())));
+                                                        refresh.with_mut(|value| *value += 1);
+                                                    }
+                                                    Err(error) => {
+                                                        status.set(Some((false, format!("Spieler-Code konnte nicht erstellt werden: {error}"))));
+                                                    }
+                                                }
+                                            });
+                                        },
+                                        {if busy_invitation() == Some(None) { "Erstellt..." } else { "Spieler-Code fuer Verein erzeugen" }}
+                                    }
+                                    if let Some(created_invitation) = latest_invitation() {
+                                        if created_invitation.invitation.group_id.is_none() {
+                                            div { class: "auth-status",
+                                                Badge { variant: BadgeVariant::Secondary, "Neuer Code" }
+                                                p { class: "auth-help", "{created_invitation.plain_code}" }
+                                            }
+                                        }
+                                    }
+                                }
                                 div { style: "display: grid; gap: 0.75rem;",
                                     div { class: "auth-field",
                                         Label { html_for: "group-name", "Neue Gruppe" }
@@ -181,10 +253,79 @@ pub fn ClubDetail(club_id: i32) -> Element {
                                         new_team_names,
                                         player_names,
                                         team_sort_orders,
+                                        invitation_days,
+                                        latest_invitation,
+                                        busy_invitation,
                                         busy_trainer,
                                         busy_team,
+                                        revoking_invitation,
                                         removing_trainer,
                                         removing_player,
+                                        on_create_invitation: move |(group_id, role)| {
+                                            if busy_invitation().is_some() {
+                                                return;
+                                            }
+
+                                            status.set(None);
+                                            latest_invitation.set(None);
+                                            let expires_in_days = parse_invitation_days(&invitation_days());
+                                            spawn(async move {
+                                                let expires_in_days = match expires_in_days {
+                                                    Ok(days) => days,
+                                                    Err(error) => {
+                                                        status.set(Some((false, format!("Einladung konnte nicht erstellt werden: {error}"))));
+                                                        return;
+                                                    }
+                                                };
+
+                                                busy_invitation.set(Some(Some(group_id)));
+                                                let result = create_invitation(CreateInvitationInput {
+                                                    club_id,
+                                                    group_id: Some(group_id),
+                                                    role,
+                                                    expires_in_days,
+                                                })
+                                                .await;
+                                                busy_invitation.set(None);
+
+                                                match result {
+                                                    Ok(created_invitation) => {
+                                                        latest_invitation.set(Some(created_invitation.clone()));
+                                                        let label = match role {
+                                                            InvitationRole::Trainer => "Trainer-Code",
+                                                            InvitationRole::Player => "Spieler-Code",
+                                                        };
+                                                        status.set(Some((true, format!("{label} wurde erstellt."))));
+                                                        refresh.with_mut(|value| *value += 1);
+                                                    }
+                                                    Err(error) => {
+                                                        status.set(Some((false, format!("Einladung konnte nicht erstellt werden: {error}"))));
+                                                    }
+                                                }
+                                            });
+                                        },
+                                        on_revoke_invitation: move |invitation_id| {
+                                            if revoking_invitation().is_some() {
+                                                return;
+                                            }
+
+                                            status.set(None);
+                                            spawn(async move {
+                                                revoking_invitation.set(Some(invitation_id));
+                                                let result = revoke_invitation(invitation_id).await;
+                                                revoking_invitation.set(None);
+
+                                                match result {
+                                                    Ok(()) => {
+                                                        status.set(Some((true, "Einladung wurde widerrufen.".to_string())));
+                                                        refresh.with_mut(|value| *value += 1);
+                                                    }
+                                                    Err(error) => {
+                                                        status.set(Some((false, format!("Einladung konnte nicht widerrufen werden: {error}"))));
+                                                    }
+                                                }
+                                            });
+                                        },
                                         on_assign_trainer: move |group_id| {
                                             if busy_trainer().is_some() {
                                                 return;
@@ -361,10 +502,16 @@ fn GroupList(
     new_team_names: Signal<std::collections::HashMap<i32, String>>,
     player_names: Signal<std::collections::HashMap<i32, String>>,
     team_sort_orders: Signal<std::collections::HashMap<i32, String>>,
+    invitation_days: Signal<String>,
+    latest_invitation: Signal<Option<CreatedInvitation>>,
+    busy_invitation: Signal<Option<Option<i32>>>,
     busy_trainer: Signal<Option<i32>>,
     busy_team: Signal<Option<i32>>,
+    revoking_invitation: Signal<Option<i32>>,
     removing_trainer: Signal<Option<(i32, i32)>>,
     removing_player: Signal<Option<(i32, i32)>>,
+    on_create_invitation: EventHandler<(i32, InvitationRole)>,
+    on_revoke_invitation: EventHandler<i32>,
     on_assign_trainer: EventHandler<i32>,
     on_remove_trainer: EventHandler<(i32, i32)>,
     on_create_team: EventHandler<i32>,
@@ -411,6 +558,49 @@ fn GroupList(
                                             entries.insert(section.group.id, event.value());
                                         });
                                     },
+                                }
+                            }
+                            div { class: "auth-field",
+                                Label { html_for: format!("invitation-days-{}", section.group.id), "Code gueltig fuer Tage" }
+                                Input {
+                                    id: format!("invitation-days-{}", section.group.id),
+                                    value: invitation_days(),
+                                    placeholder: "7",
+                                    disabled: busy_invitation().is_some(),
+                                    oninput: move |event: FormEvent| invitation_days.set(event.value()),
+                                }
+                            }
+                            if let Some(created_invitation) = latest_invitation() {
+                                if created_invitation.invitation.group_id == Some(section.group.id) {
+                                    div { class: "auth-status",
+                                        Badge { variant: BadgeVariant::Secondary, "Neuer Code" }
+                                        p { class: "auth-help", "{created_invitation.plain_code}" }
+                                    }
+                                }
+                            }
+                            if section.invitations.is_empty() {
+                                p { class: "auth-help", "Noch keine aktiven Einladungen in diesem Bereich." }
+                            } else {
+                                div { style: "display: grid; gap: 0.5rem;",
+                                    for invitation in section.invitations {
+                                        div { style: "display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.65rem 0.8rem; border-radius: 0.75rem; background: var(--background);",
+                                            span { class: "auth-help",
+                                                {
+                                                    let role_label = match invitation.role {
+                                                        InvitationRole::Trainer => "Trainer",
+                                                        InvitationRole::Player => "Spieler",
+                                                    };
+                                                    format!("{}-Code bis {}", role_label, invitation.expires_at)
+                                                }
+                                            }
+                                            Button {
+                                                variant: ButtonVariant::Ghost,
+                                                disabled: revoking_invitation() == Some(invitation.id),
+                                                onclick: move |_| on_revoke_invitation.call(invitation.id),
+                                                {if revoking_invitation() == Some(invitation.id) { "Widerruft..." } else { "Widerrufen" }}
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -509,6 +699,18 @@ fn GroupList(
                             }
                             Button {
                                 variant: ButtonVariant::Outline,
+                                disabled: busy_invitation().is_some(),
+                                onclick: move |_| on_create_invitation.call((section.group.id, InvitationRole::Trainer)),
+                                {if busy_invitation() == Some(Some(section.group.id)) { "Erstellt..." } else { "Trainer-Code erzeugen" }}
+                            }
+                            Button {
+                                variant: ButtonVariant::Outline,
+                                disabled: busy_invitation().is_some(),
+                                onclick: move |_| on_create_invitation.call((section.group.id, InvitationRole::Player)),
+                                {if busy_invitation() == Some(Some(section.group.id)) { "Erstellt..." } else { "Spieler-Code fuer Gruppe erzeugen" }}
+                            }
+                            Button {
+                                variant: ButtonVariant::Outline,
                                 disabled: busy_team().is_some(),
                                 onclick: move |_| on_create_team.call(section.group.id),
                                 {if busy_team() == Some(section.group.id) { "Speichert..." } else { "Mannschaft anlegen" }}
@@ -533,4 +735,15 @@ fn parse_sort_order(value: &str) -> Result<i32, String> {
     trimmed
         .parse::<i32>()
         .map_err(|_| "Die Sortierung muss eine ganze Zahl sein.".to_string())
+}
+
+fn parse_invitation_days(value: &str) -> Result<i32, String> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        return Ok(7);
+    }
+
+    trimmed
+        .parse::<i32>()
+        .map_err(|_| "Die Gueltigkeit muss eine ganze Zahl in Tagen sein.".to_string())
 }

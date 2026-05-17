@@ -180,6 +180,50 @@ async fn ensure_schema(db: &DatabaseConnection) -> Result<(), DbErr> {
 
     db.execute(Statement::from_string(
         db.get_database_backend(),
+        r#"
+        CREATE TABLE IF NOT EXISTS club_memberships (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            club_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            created_at INTEGER NOT NULL,
+            FOREIGN KEY (club_id) REFERENCES clubs(id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+            UNIQUE (club_id, user_id)
+        );
+        "#
+        .to_string(),
+    ))
+    .await?;
+
+    db.execute(Statement::from_string(
+        db.get_database_backend(),
+        r#"
+        CREATE TABLE IF NOT EXISTS invitations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            code_hash TEXT NOT NULL UNIQUE,
+            club_id INTEGER NOT NULL,
+            group_id INTEGER NULL,
+            team_id INTEGER NULL,
+            target_role TEXT NOT NULL,
+            created_by_user_id INTEGER NOT NULL,
+            expires_at INTEGER NOT NULL,
+            used_at INTEGER NULL,
+            used_by_user_id INTEGER NULL,
+            revoked_at INTEGER NULL,
+            created_at INTEGER NOT NULL,
+            FOREIGN KEY (club_id) REFERENCES clubs(id) ON DELETE CASCADE,
+            FOREIGN KEY (group_id) REFERENCES club_groups(id) ON DELETE CASCADE,
+            FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE,
+            FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (used_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+        );
+        "#
+        .to_string(),
+    ))
+    .await?;
+
+    db.execute(Statement::from_string(
+        db.get_database_backend(),
         "CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions (user_id);".to_string(),
     ))
     .await?;
@@ -229,6 +273,42 @@ async fn ensure_schema(db: &DatabaseConnection) -> Result<(), DbErr> {
     db.execute(Statement::from_string(
         db.get_database_backend(),
         "CREATE INDEX IF NOT EXISTS idx_team_players_user_id ON team_players (user_id);".to_string(),
+    ))
+    .await?;
+
+    db.execute(Statement::from_string(
+        db.get_database_backend(),
+        "CREATE INDEX IF NOT EXISTS idx_club_memberships_club_id ON club_memberships (club_id);".to_string(),
+    ))
+    .await?;
+
+    db.execute(Statement::from_string(
+        db.get_database_backend(),
+        "CREATE INDEX IF NOT EXISTS idx_club_memberships_user_id ON club_memberships (user_id);".to_string(),
+    ))
+    .await?;
+
+    db.execute(Statement::from_string(
+        db.get_database_backend(),
+        "CREATE INDEX IF NOT EXISTS idx_invitations_club_id ON invitations (club_id);".to_string(),
+    ))
+    .await?;
+
+    db.execute(Statement::from_string(
+        db.get_database_backend(),
+        "CREATE INDEX IF NOT EXISTS idx_invitations_group_id ON invitations (group_id);".to_string(),
+    ))
+    .await?;
+
+    db.execute(Statement::from_string(
+        db.get_database_backend(),
+        "CREATE INDEX IF NOT EXISTS idx_invitations_created_by_user_id ON invitations (created_by_user_id);".to_string(),
+    ))
+    .await?;
+
+    db.execute(Statement::from_string(
+        db.get_database_backend(),
+        "CREATE INDEX IF NOT EXISTS idx_invitations_expires_at ON invitations (expires_at);".to_string(),
     ))
     .await?;
 

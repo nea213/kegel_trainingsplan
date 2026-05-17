@@ -31,6 +31,10 @@ pub enum Relation {
         on_delete = "Cascade"
     )]
     Group,
+    #[sea_orm(has_many = "super::invitation::Entity")]
+    Invitation,
+    #[sea_orm(has_many = "super::team_player::Entity")]
+    TeamPlayer,
 }
 
 impl Related<super::club::Entity> for Entity {
@@ -42,6 +46,18 @@ impl Related<super::club::Entity> for Entity {
 impl Related<super::club_group::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Group.def()
+    }
+}
+
+impl Related<super::invitation::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Invitation.def()
+    }
+}
+
+impl Related<super::team_player::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::TeamPlayer.def()
     }
 }
 
