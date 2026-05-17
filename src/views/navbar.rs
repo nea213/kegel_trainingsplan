@@ -82,6 +82,14 @@ pub fn Navbar() -> Element {
                                 to: Route::Home {},
                                 "Startseite"
                             }
+                            if user.is_system_admin {
+                                NavbarItem {
+                                    index: 1usize,
+                                    value: "clubs".to_string(),
+                                    to: Route::Clubs {},
+                                    "Vereine"
+                                }
+                            }
                         }
                     }
                     div { class: "nav-session",

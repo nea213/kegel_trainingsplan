@@ -1,12 +1,15 @@
 use dioxus::prelude::*;
 
 use theme::{ThemeContext, ThemeMode};
-use views::{Home, Login, Navbar, Register};
+use views::{ClubDetail, Clubs, Home, Login, Navbar, Register};
 
 mod auth;
+mod clubs;
 mod components;
+mod groups;
 #[cfg(all(feature = "server", any(target_os = "linux", target_os = "macos", target_os = "windows")))]
 mod server;
+mod teams;
 mod theme;
 mod views;
 
@@ -20,6 +23,12 @@ enum Route {
     Register { return_to: Option<String> },
 
     #[layout(Navbar)]
+        #[route("/clubs")]
+        Clubs {},
+
+        #[route("/clubs/:club_id")]
+        ClubDetail { club_id: i32 },
+
         #[route("/")]
         Home {},
 }
