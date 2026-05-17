@@ -224,6 +224,33 @@ async fn ensure_schema(db: &DatabaseConnection) -> Result<(), DbErr> {
 
     db.execute(Statement::from_string(
         db.get_database_backend(),
+        r#"
+        CREATE TABLE IF NOT EXISTS training_sessions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            club_id INTEGER NOT NULL,
+            group_id INTEGER NOT NULL,
+            team_id INTEGER NULL,
+            title TEXT NOT NULL,
+            description TEXT NOT NULL DEFAULT '',
+            location TEXT NOT NULL DEFAULT '',
+            start_at INTEGER NOT NULL,
+            end_at INTEGER NOT NULL,
+            status TEXT NOT NULL,
+            created_by_user_id INTEGER NOT NULL,
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL,
+            FOREIGN KEY (club_id) REFERENCES clubs(id) ON DELETE CASCADE,
+            FOREIGN KEY (group_id) REFERENCES club_groups(id) ON DELETE CASCADE,
+            FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE SET NULL,
+            FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE CASCADE
+        );
+        "#
+        .to_string(),
+    ))
+    .await?;
+
+    db.execute(Statement::from_string(
+        db.get_database_backend(),
         "CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions (user_id);".to_string(),
     ))
     .await?;
@@ -309,6 +336,30 @@ async fn ensure_schema(db: &DatabaseConnection) -> Result<(), DbErr> {
     db.execute(Statement::from_string(
         db.get_database_backend(),
         "CREATE INDEX IF NOT EXISTS idx_invitations_expires_at ON invitations (expires_at);".to_string(),
+    ))
+    .await?;
+
+    db.execute(Statement::from_string(
+        db.get_database_backend(),
+        "CREATE INDEX IF NOT EXISTS idx_training_sessions_group_id ON training_sessions (group_id);".to_string(),
+    ))
+    .await?;
+
+    db.execute(Statement::from_string(
+        db.get_database_backend(),
+        "CREATE INDEX IF NOT EXISTS idx_training_sessions_team_id ON training_sessions (team_id);".to_string(),
+    ))
+    .await?;
+
+    db.execute(Statement::from_string(
+        db.get_database_backend(),
+        "CREATE INDEX IF NOT EXISTS idx_training_sessions_start_at ON training_sessions (start_at);".to_string(),
+    ))
+    .await?;
+
+    db.execute(Statement::from_string(
+        db.get_database_backend(),
+        "CREATE INDEX IF NOT EXISTS idx_training_sessions_created_by_user_id ON training_sessions (created_by_user_id);".to_string(),
     ))
     .await?;
 

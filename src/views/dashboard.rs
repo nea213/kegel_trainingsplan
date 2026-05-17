@@ -5,13 +5,16 @@ use crate::components::ui::item::{
     Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemSeparator, ItemTitle,
 };
 use crate::dashboard::get_dashboard_context;
+use crate::training::{format_training_range, list_my_training_sessions, training_scope_label};
 use crate::Route;
 use dioxus::prelude::*;
 
 #[component]
 pub fn Dashboard() -> Element {
     let context_resource = use_server_future(move || async move { get_dashboard_context().await })?;
+    let training_resource = use_server_future(move || async move { list_my_training_sessions().await })?;
     let context_state = context_resource.read().as_ref().cloned();
+    let training_state = training_resource.read().as_ref().cloned();
     let nav = navigator();
 
     match context_state {
@@ -151,6 +154,59 @@ pub fn Dashboard() -> Element {
                                                     ItemSeparator {}
                                                 }
                                             }
+                                        }
+                                    }
+                                }
+
+                                Card { class: "home-intro-card", style: "margin-top: 1rem;",
+                                    CardHeader {
+                                        CardTitle { "Meine kommenden Trainings" }
+                                        CardDescription {
+                                            "Du siehst hier gruppenweite und mannschaftsspezifische Trainings, die fuer dich relevant sind."
+                                        }
+                                    }
+                                    CardContent {
+                                        match training_state {
+                                            None => rsx! { p { class: "auth-help", "Trainings werden geladen..." } },
+                                            Some(Err(error)) => rsx! {
+                                                div { class: "auth-status",
+                                                    Badge { variant: BadgeVariant::Destructive, "Fehler" }
+                                                    p { class: "auth-help", "Trainings konnten nicht geladen werden: {error}" }
+                                                }
+                                            },
+                                            Some(Ok(trainings)) if trainings.is_empty() => rsx! {
+                                                p { class: "auth-help", "Aktuell sind keine relevanten Trainings fuer dich geplant." }
+                                            },
+                                            Some(Ok(trainings)) => {
+                                                let training_count = trainings.len();
+
+                                                rsx! {
+                                                    ItemGroup {
+                                                        for (index, training) in trainings.into_iter().enumerate() {
+                                                            Item {
+                                                                ItemContent {
+                                                                    ItemTitle { "{training.title}" }
+                                                                    ItemDescription {
+                                                                        "{training.club_name} | {training_scope_label(&training)}"
+                                                                    }
+                                                                    ItemDescription {
+                                                                        "{format_training_range(training.start_at, training.end_at)}"
+                                                                    }
+                                                                    if !training.location.trim().is_empty() {
+                                                                        ItemDescription { "Ort: {training.location}" }
+                                                                    }
+                                                                }
+                                                                ItemActions {
+                                                                    Badge { variant: BadgeVariant::Secondary, "{training.status}" }
+                                                                }
+                                                            }
+                                                            if index + 1 < training_count {
+                                                                ItemSeparator {}
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            },
                                         }
                                     }
                                 }

@@ -30,13 +30,7 @@ pub async fn is_group_trainer(user_id: i32, group_id: i32) -> Result<bool, Strin
 }
 
 pub async fn require_group_trainer_or_system_admin(group_id: i32) -> Result<PublicUser, String> {
-    let user = require_authenticated_user().await?;
-
-    if user.is_system_admin || is_group_trainer(user.id, group_id).await? {
-        return Ok(user);
-    }
-
-    Err("Nur Trainer dieser Gruppe oder System-Admins duerfen diesen Bereich verwalten.".to_string())
+    require_group_manager(group_id).await
 }
 
 pub async fn require_invitation_manager(club_id: i32, group_id: Option<i32>) -> Result<PublicUser, String> {
@@ -78,6 +72,39 @@ pub async fn is_team_player(user_id: i32, team_id: i32) -> Result<bool, String> 
         .await
         .map(|membership| membership.is_some())
         .map_err(db_error)
+}
+
+pub async fn is_club_trainer(user_id: i32, club_id: i32) -> Result<bool, String> {
+    let db = db::connection().await.map_err(db_error)?;
+    let group_ids = club_group::Entity::find()
+        .filter(club_group::Column::ClubId.eq(club_id))
+        .all(db)
+        .await
+        .map_err(db_error)?
+        .into_iter()
+        .map(|group| group.id)
+        .collect::<Vec<_>>();
+
+    if group_ids.is_empty() {
+        return Ok(false);
+    }
+
+    group_trainer::Entity::find()
+        .filter(group_trainer::Column::UserId.eq(user_id))
+        .filter(group_trainer::Column::GroupId.is_in(group_ids))
+        .one(db)
+        .await
+        .map(|membership| membership.is_some())
+        .map_err(db_error)
+}
+
+pub async fn require_club_manager(club_id: i32) -> Result<PublicUser, String> {
+    let user = require_authenticated_user().await?;
+    if user.is_system_admin || is_club_trainer(user.id, club_id).await? {
+        return Ok(user);
+    }
+
+    Err("Nur Trainer mit Gruppen in diesem Verein oder System-Admins duerfen diesen Bereich verwalten.".to_string())
 }
 
 pub async fn can_manage_group(user_id: i32, group_id: i32) -> Result<bool, String> {

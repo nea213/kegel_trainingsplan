@@ -15,6 +15,7 @@ mod invitations;
 mod server;
 mod team_players;
 mod teams;
+mod training;
 mod theme;
 mod views;
 

@@ -16,7 +16,7 @@ pub async fn list_club_members(club_id: i32) -> Result<Vec<ClubMembershipSummary
 }
 
 pub async fn list_unassigned_club_members(club_id: i32) -> Result<Vec<ClubMembershipSummary>, String> {
-    permissions::require_system_admin().await?;
+    permissions::require_club_manager(club_id).await?;
     list_members_for_club(club_id, true).await
 }
 

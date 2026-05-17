@@ -2,11 +2,18 @@ use crate::club_memberships::{assign_player_to_team, list_unassigned_club_member
 use crate::components::ui::badge::{Badge, BadgeVariant};
 use crate::components::ui::button::{Button, ButtonVariant};
 use crate::components::ui::card::{Card, CardContent, CardDescription, CardHeader, CardTitle};
+use crate::components::ui::input::Input;
 use crate::components::ui::item::{
     Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemSeparator, ItemTitle,
 };
+use crate::components::ui::label::Label;
+use crate::components::ui::textarea::Textarea;
 use crate::dashboard::get_dashboard_context;
 use crate::teams::list_teams_for_group;
+use crate::training::{
+    create_training_session, format_training_range, list_group_training_sessions,
+    training_scope_label, CreateTrainingSessionInput,
+};
 use dioxus::prelude::*;
 
 #[component]
@@ -20,6 +27,13 @@ pub fn GroupDetail(group_id: i32) -> Element {
     let mut selected_team = use_signal(|| None::<i32>);
     let mut assigning = use_signal(|| None::<i32>);
     let mut status = use_signal(|| None::<(bool, String)>);
+    let mut training_title = use_signal(String::new);
+    let mut training_description = use_signal(String::new);
+    let mut training_location = use_signal(String::new);
+    let mut training_start_at = use_signal(String::new);
+    let mut training_end_at = use_signal(String::new);
+    let mut training_team_id = use_signal(|| None::<i32>);
+    let mut creating_training = use_signal(|| false);
 
     match context_state {
         None => rsx! {
@@ -65,8 +79,13 @@ pub fn GroupDetail(group_id: i32) -> Element {
                 let _ = refresh();
                 async move { list_unassigned_club_members(group.club_id).await }
             })?;
+            let training_resource = use_server_future(move || {
+                let _ = refresh();
+                async move { list_group_training_sessions(group_id).await }
+            })?;
             let teams_state = teams_resource.read().as_ref().cloned();
             let members_state = members_resource.read().as_ref().cloned();
+            let training_state = training_resource.read().as_ref().cloned();
 
             rsx! {
                 section { id: "home-intro",
@@ -121,6 +140,182 @@ pub fn GroupDetail(group_id: i32) -> Element {
                                             }
                                         }
                                     }
+                                    }
+                                },
+                            }
+                        }
+                    }
+                }
+
+                section { id: "home-intro",
+                    Card { class: "home-intro-card",
+                        CardHeader {
+                            CardTitle { "Trainingsplanung" }
+                            CardDescription {
+                                "Plane hier gruppenweite oder mannschaftsspezifische Trainings fuer diese Gruppe."
+                            }
+                        }
+                        CardContent {
+                            div { style: "display: grid; gap: 0.75rem; margin-bottom: 1rem;",
+                                div { class: "auth-field",
+                                    Label { html_for: "training-title", "Titel" }
+                                    Input {
+                                        id: "training-title",
+                                        value: training_title(),
+                                        placeholder: "z. B. Techniktraining",
+                                        disabled: creating_training(),
+                                        oninput: move |event: FormEvent| training_title.set(event.value()),
+                                    }
+                                }
+                                div { class: "auth-field",
+                                    Label { html_for: "training-location", "Ort" }
+                                    Input {
+                                        id: "training-location",
+                                        value: training_location(),
+                                        placeholder: "z. B. Vereinsheim Bahn 1-4",
+                                        disabled: creating_training(),
+                                        oninput: move |event: FormEvent| training_location.set(event.value()),
+                                    }
+                                }
+                                div { style: "display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));",
+                                    div { class: "auth-field",
+                                        Label { html_for: "training-start-at", "Start" }
+                                        Input {
+                                            id: "training-start-at",
+                                            r#type: "datetime-local",
+                                            value: training_start_at(),
+                                            disabled: creating_training(),
+                                            oninput: move |event: FormEvent| training_start_at.set(event.value()),
+                                        }
+                                    }
+                                    div { class: "auth-field",
+                                        Label { html_for: "training-end-at", "Ende" }
+                                        Input {
+                                            id: "training-end-at",
+                                            r#type: "datetime-local",
+                                            value: training_end_at(),
+                                            disabled: creating_training(),
+                                            oninput: move |event: FormEvent| training_end_at.set(event.value()),
+                                        }
+                                    }
+                                }
+                                div { class: "auth-field",
+                                    Label { html_for: "training-team-id", "Mannschaft optional" }
+                                    Input {
+                                        id: "training-team-id",
+                                        value: training_team_id().map(|team_id| team_id.to_string()).unwrap_or_default(),
+                                        placeholder: "Leer lassen fuer ganze Gruppe oder Team-ID eintragen",
+                                        disabled: creating_training(),
+                                        oninput: move |event: FormEvent| {
+                                            let value = event.value();
+                                            let value = value.trim().to_string();
+                                            if value.is_empty() {
+                                                training_team_id.set(None);
+                                            } else if let Ok(team_id) = value.parse::<i32>() {
+                                                training_team_id.set(Some(team_id));
+                                            }
+                                        },
+                                    }
+                                }
+                                div { class: "auth-field",
+                                    Label { html_for: "training-description", "Beschreibung" }
+                                    Textarea {
+                                        id: "training-description",
+                                        value: training_description(),
+                                        rows: "4",
+                                        placeholder: "Fokus, Ablauf oder Hinweise fuer das Training",
+                                        disabled: creating_training(),
+                                        oninput: move |event: FormEvent| training_description.set(event.value()),
+                                    }
+                                }
+                                Button {
+                                    variant: ButtonVariant::Secondary,
+                                    disabled: creating_training(),
+                                    onclick: move |_| {
+                                        if creating_training() {
+                                            return;
+                                        }
+
+                                        status.set(None);
+                                        let input = CreateTrainingSessionInput {
+                                            club_id: group.club_id,
+                                            group_id,
+                                            team_id: training_team_id(),
+                                            title: training_title(),
+                                            description: training_description(),
+                                            location: training_location(),
+                                            start_at: training_start_at(),
+                                            end_at: training_end_at(),
+                                        };
+
+                                        spawn(async move {
+                                            creating_training.set(true);
+                                            let result = create_training_session(input).await;
+                                            creating_training.set(false);
+
+                                            match result {
+                                                Ok(created_training) => {
+                                                    training_title.set(String::new());
+                                                    training_description.set(String::new());
+                                                    training_location.set(String::new());
+                                                    training_start_at.set(String::new());
+                                                    training_end_at.set(String::new());
+                                                    training_team_id.set(None);
+                                                    status.set(Some((true, format!("Training '{}' wurde angelegt.", created_training.title))));
+                                                    refresh.with_mut(|value| *value += 1);
+                                                }
+                                                Err(error) => {
+                                                    status.set(Some((false, format!("Training konnte nicht angelegt werden: {error}"))));
+                                                }
+                                            }
+                                        });
+                                    },
+                                    {if creating_training() { "Speichert..." } else { "Training anlegen" }}
+                                }
+                            }
+
+                            match training_state {
+                                None => rsx! { p { class: "auth-help", "Trainings werden geladen..." } },
+                                Some(Err(error)) => rsx! {
+                                    div { class: "auth-status",
+                                        Badge { variant: BadgeVariant::Destructive, "Fehler" }
+                                        p { class: "auth-help", "Trainings konnten nicht geladen werden: {error}" }
+                                    }
+                                },
+                                Some(Ok(trainings)) if trainings.is_empty() => rsx! {
+                                    p { class: "auth-help", "Fuer diese Gruppe wurden noch keine Trainings geplant." }
+                                },
+                                Some(Ok(trainings)) => {
+                                    let training_count = trainings.len();
+
+                                    rsx! {
+                                        ItemGroup {
+                                            for (index, training) in trainings.into_iter().enumerate() {
+                                                Item {
+                                                    ItemContent {
+                                                        ItemTitle { "{training.title}" }
+                                                        ItemDescription {
+                                                            "{training_scope_label(&training)} | {format_training_range(training.start_at, training.end_at)}"
+                                                        }
+                                                        if !training.location.trim().is_empty() {
+                                                            ItemDescription { "Ort: {training.location}" }
+                                                        }
+                                                        if !training.description.trim().is_empty() {
+                                                            ItemDescription { "{training.description}" }
+                                                        }
+                                                    }
+                                                    ItemActions {
+                                                        Badge {
+                                                            variant: BadgeVariant::Secondary,
+                                                            "{training.status}"
+                                                        }
+                                                    }
+                                                }
+                                                if index + 1 < training_count {
+                                                    ItemSeparator {}
+                                                }
+                                            }
+                                        }
                                     }
                                 },
                             }

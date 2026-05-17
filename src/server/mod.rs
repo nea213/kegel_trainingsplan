@@ -11,3 +11,4 @@ pub mod invitations;
 pub mod permissions;
 pub mod team_players;
 pub mod teams;
+pub mod training;

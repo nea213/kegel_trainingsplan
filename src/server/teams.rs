@@ -50,7 +50,7 @@ pub async fn create(input: CreateTeamInput) -> Result<TeamSummary, String> {
 }
 
 pub async fn list_for_group(group_id: i32) -> Result<Vec<TeamSummary>, String> {
-    permissions::require_system_admin().await?;
+    permissions::require_group_manager(group_id).await?;
     let db = db::connection().await.map_err(db_error)?;
 
     team::Entity::find()

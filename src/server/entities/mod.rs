@@ -6,4 +6,5 @@ pub mod invitation;
 pub mod session;
 pub mod team;
 pub mod team_player;
+pub mod training_session;
 pub mod user;
