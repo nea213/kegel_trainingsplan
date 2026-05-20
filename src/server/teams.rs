@@ -27,7 +27,7 @@ pub async fn create(input: CreateTeamInput) -> Result<TeamSummary, String> {
 
     if group.club_id != input.club_id {
         return Err(
-            "Die Mannschaft kann nur in einer Gruppe des ausgewaehlten Vereins angelegt werden."
+            "Die Mannschaft kann nur in einer Gruppe des ausgewählten Vereins angelegt werden."
                 .to_string(),
         );
     }
@@ -71,7 +71,7 @@ fn normalize_name(label: &str, value: &str) -> Result<String, String> {
     }
 
     if name.len() > MAX_TEAM_NAME_LEN {
-        return Err(format!("{label} darf hoechstens {MAX_TEAM_NAME_LEN} Zeichen lang sein."));
+        return Err(format!("{label} darf höchstens {MAX_TEAM_NAME_LEN} Zeichen lang sein."));
     }
 
     Ok(name.to_string())

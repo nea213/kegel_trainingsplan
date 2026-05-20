@@ -31,7 +31,7 @@ pub async fn assign_player_to_team(input: PlayerAssignmentInput) -> Result<(), S
         .ok_or_else(|| "Die Zielmannschaft wurde nicht gefunden.".to_string())?;
 
     if team.club_id != input.club_id {
-        return Err("Die Zielmannschaft gehoert nicht zum ausgewaehlten Verein.".to_string());
+        return Err("Die Zielmannschaft gehört nicht zum ausgewählten Verein.".to_string());
     }
 
     let membership = club_membership::Entity::find()

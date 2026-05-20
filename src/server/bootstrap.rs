@@ -71,7 +71,7 @@ fn bootstrap_credentials() -> Result<Option<(String, String)>, DbErr> {
         (Some(username), Some(password)) => Ok(Some((username, password))),
         (None, None) => Ok(None),
         _ => Err(DbErr::Custom(format!(
-            "Bootstrap-System-Admin ist unvollstaendig konfiguriert. Setze entweder beide Variablen '{BOOTSTRAP_ADMIN_USERNAME}' und '{BOOTSTRAP_ADMIN_PASSWORD}' oder keine von beiden."
+            "Bootstrap-System-Admin ist unvollständig konfiguriert. Setze entweder beide Variablen '{BOOTSTRAP_ADMIN_USERNAME}' und '{BOOTSTRAP_ADMIN_PASSWORD}' oder keine von beiden."
         ))),
     }
 }

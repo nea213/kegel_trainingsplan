@@ -11,7 +11,7 @@ pub async fn require_system_admin() -> Result<PublicUser, String> {
     let user = require_authenticated_user().await?;
 
     if !user.is_system_admin {
-        return Err("Nur System-Admins duerfen diesen Bereich verwalten.".to_string());
+        return Err("Nur System-Admins dürfen diesen Bereich verwalten.".to_string());
     }
 
     Ok(user)
@@ -41,7 +41,7 @@ pub async fn require_invitation_manager(club_id: i32, group_id: Option<i32>) -> 
     }
 
     let Some(group_id) = group_id else {
-        return Err("Nur System-Admins duerfen vereinsweite Spielereinladungen erzeugen.".to_string());
+        return Err("Nur System-Admins dürfen vereinsweite Spielereinladungen erzeugen.".to_string());
     };
 
     let db = db::connection().await.map_err(db_error)?;
@@ -52,14 +52,14 @@ pub async fn require_invitation_manager(club_id: i32, group_id: Option<i32>) -> 
         .ok_or_else(|| "Die Zielgruppe wurde nicht gefunden.".to_string())?;
 
     if group.club_id != club_id {
-        return Err("Die Zielgruppe gehoert nicht zum ausgewaehlten Verein.".to_string());
+        return Err("Die Zielgruppe gehört nicht zum ausgewählten Verein.".to_string());
     }
 
     if is_group_trainer(user.id, group_id).await? {
         return Ok(user);
     }
 
-    Err("Nur Trainer dieser Gruppe oder System-Admins duerfen Einladungen erzeugen.".to_string())
+    Err("Nur Trainer dieser Gruppe oder System-Admins dürfen Einladungen erzeugen.".to_string())
 }
 
 pub async fn is_team_player(user_id: i32, team_id: i32) -> Result<bool, String> {
@@ -104,7 +104,7 @@ pub async fn require_club_manager(club_id: i32) -> Result<PublicUser, String> {
         return Ok(user);
     }
 
-    Err("Nur Trainer mit Gruppen in diesem Verein oder System-Admins duerfen diesen Bereich verwalten.".to_string())
+    Err("Nur Trainer mit Gruppen in diesem Verein oder System-Admins dürfen diesen Bereich verwalten.".to_string())
 }
 
 pub async fn can_manage_group(user_id: i32, group_id: i32) -> Result<bool, String> {
@@ -126,7 +126,7 @@ pub async fn require_group_manager(group_id: i32) -> Result<PublicUser, String> 
         return Ok(user);
     }
 
-    Err("Nur Trainer dieser Gruppe oder System-Admins duerfen diesen Bereich verwalten.".to_string())
+    Err("Nur Trainer dieser Gruppe oder System-Admins dürfen diesen Bereich verwalten.".to_string())
 }
 
 pub async fn can_manage_team(user_id: i32, team_id: i32) -> Result<bool, String> {
@@ -164,7 +164,7 @@ pub async fn require_team_manager(team_id: i32) -> Result<PublicUser, String> {
         return Ok(user);
     }
 
-    Err("Nur Trainer dieser Gruppe oder System-Admins duerfen diese Mannschaft verwalten.".to_string())
+    Err("Nur Trainer dieser Gruppe oder System-Admins dürfen diese Mannschaft verwalten.".to_string())
 }
 
 fn db_error(error: impl std::fmt::Display) -> String {

@@ -33,9 +33,127 @@ a {
     color: inherit;
 }
 
+.page-section,
 #home-intro {
     max-width: 980px;
     margin: 40px auto 0 auto;
+}
+
+.page-stack {
+    display: grid;
+    gap: 20px;
+}
+
+.section-stack {
+    display: grid;
+    gap: 16px;
+}
+
+.form-grid {
+    display: grid;
+    gap: 12px;
+}
+
+.form-grid-2 {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.section-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.section-actions--stack {
+    display: grid;
+    gap: 12px;
+}
+
+.section-label {
+    margin: 0;
+    color: var(--foreground);
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.section-note,
+.section-meta {
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.section-meta {
+    font-size: 0.85rem;
+}
+
+.detail-list {
+    display: grid;
+    gap: 8px;
+}
+
+.detail-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--muted);
+}
+
+.detail-row-copy {
+    display: grid;
+    min-width: 0;
+    gap: 2px;
+}
+
+.detail-row-title {
+    color: var(--foreground);
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.detail-row-meta {
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: 0.85rem;
+    line-height: 1.45;
+}
+
+.detail-card {
+    display: grid;
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--muted);
+}
+
+.detail-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.detail-card-title {
+    margin: 0;
+    color: var(--foreground);
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.detail-card-copy {
+    display: grid;
+    gap: 4px;
 }
 
 .home-intro-card {
@@ -69,7 +187,14 @@ a {
         padding: 16px;
     }
 
+    .page-section,
     #home-intro {
         margin-top: 24px;
+    }
+
+    .detail-row,
+    .detail-card-header {
+        align-items: flex-start;
+        flex-direction: column;
     }
 }

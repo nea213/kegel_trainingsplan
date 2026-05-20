@@ -1,10 +1,9 @@
 use crate::clubs::{create_club, list_clubs, ClubSummary, CreateClubInput};
-use crate::components::ui::badge::{Badge, BadgeVariant};
 use crate::components::ui::button::{Button, ButtonVariant};
 use crate::components::ui::card::{Card, CardContent, CardDescription, CardHeader, CardTitle};
 use crate::components::ui::input::Input;
 use crate::components::ui::item::{
-    Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemSeparator, ItemTitle,
+    Item, ItemActions, ItemContent, ItemGroup, ItemSeparator, ItemTitle,
 };
 use crate::components::ui::label::Label;
 use crate::auth::current_user;
@@ -28,7 +27,7 @@ pub fn Clubs() -> Element {
 
     match user_state {
         None => rsx! {
-            section { id: "home-intro",
+            section { class: "page-section",
                 div { class: "auth-status",
                     p { class: "auth-help", "Berechtigungen werden geladen..." }
                 }
@@ -36,33 +35,28 @@ pub fn Clubs() -> Element {
         },
         Some(None) => rsx! {},
         Some(Some(user)) if !user.is_system_admin => rsx! {
-            section { id: "home-intro",
+            section { class: "page-section",
                 Card { class: "home-intro-card",
                     CardHeader {
-                        Badge { variant: BadgeVariant::Destructive, "Kein Zugriff" }
                         CardTitle { "Vereinsverwaltung" }
                         CardDescription {
-                            "Nur System-Admins duerfen Vereine, Gruppen und Mannschaften verwalten."
+                            "Nur System-Admins dürfen Vereine, Gruppen und Mannschaften verwalten."
                         }
                     }
                 }
             }
         },
         Some(Some(_)) => rsx! {
-            section { id: "home-intro",
+            section { class: "page-section",
                 Card { class: "home-intro-card",
                     CardHeader {
-                        div { class: "home-badges",
-                            Badge { "System-Admin" }
-                            Badge { variant: BadgeVariant::Outline, "Phase 2" }
-                        }
                         CardTitle { "Vereine" }
                         CardDescription {
-                            "Lege Vereine an und verwalte anschliessend deren Gruppen und Mannschaften im Detailbereich."
+                            "Lege Vereine an und verwalte anschließend deren Gruppen und Mannschaften im Detailbereich."
                         }
                     }
                     CardContent {
-                        div { style: "display: grid; gap: 0.75rem;",
+                        div { class: "section-stack",
                             div { class: "auth-field",
                                 Label { html_for: "club-name", "Neuer Verein" }
                                 Input {
@@ -107,12 +101,12 @@ pub fn Clubs() -> Element {
                 }
             }
 
-            section { id: "home-intro",
+            section { class: "page-section",
                 Card { class: "home-intro-card",
                     CardHeader {
                         CardTitle { "Bestehende Vereine" }
                         CardDescription {
-                            "Waehle einen Verein aus, um Gruppen und Mannschaften zu pflegen."
+                            "Wähle einen Verein aus, um Gruppen und Mannschaften zu pflegen."
                         }
                     }
                     CardContent {
@@ -121,8 +115,7 @@ pub fn Clubs() -> Element {
                                 p { class: "auth-help", "Vereinsliste wird geladen..." }
                             },
                             Some(Err(error)) => rsx! {
-                                div { class: "auth-status",
-                                    Badge { variant: BadgeVariant::Destructive, "Fehler" }
+                                div { class: "auth-status auth-status--error",
                                     p { class: "auth-help", "Vereine konnten nicht geladen werden: {error}" }
                                 }
                             },
@@ -140,11 +133,7 @@ pub fn Clubs() -> Element {
                         }
 
                         if let Some((success, message)) = status() {
-                            div { class: "auth-status",
-                                Badge {
-                                    variant: if success { BadgeVariant::Secondary } else { BadgeVariant::Destructive },
-                                    {if success { "Status" } else { "Fehler" }}
-                                }
+                            div { class: if success { "auth-status auth-status--success" } else { "auth-status auth-status--error" },
                                 p { class: "auth-help", "{message}" }
                             }
                         }
@@ -165,13 +154,12 @@ fn ClubList(clubs: Vec<ClubSummary>, on_open: EventHandler<i32>) -> Element {
                 Item {
                     ItemContent {
                         ItemTitle { "{club.name}" }
-                        ItemDescription { "Verein #{club.id}" }
                     }
                     ItemActions {
                         Button {
                             variant: ButtonVariant::Outline,
                             onclick: move |_| on_open.call(club.id),
-                            "Oeffnen"
+                            "Öffnen"
                         }
                     }
                 }

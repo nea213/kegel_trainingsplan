@@ -43,7 +43,7 @@ pub async fn create(input: CreateTrainingSessionInput) -> Result<TrainingSession
         .ok_or_else(|| "Die Zielgruppe wurde nicht gefunden.".to_string())?;
 
     if group.club_id != input.club_id {
-        return Err("Die Zielgruppe gehoert nicht zum ausgewaehlten Verein.".to_string());
+        return Err("Die Zielgruppe gehört nicht zum ausgewählten Verein.".to_string());
     }
 
     let team_name = match input.team_id {
@@ -56,7 +56,7 @@ pub async fn create(input: CreateTrainingSessionInput) -> Result<TrainingSession
 
             if team.group_id != input.group_id || team.club_id != input.club_id {
                 return Err(
-                    "Die Zielmannschaft muss zur ausgewaehlten Gruppe und zum ausgewaehlten Verein gehoeren."
+                    "Die Zielmannschaft muss zur ausgewählten Gruppe und zum ausgewählten Verein gehören."
                         .to_string(),
                 );
             }
@@ -224,7 +224,7 @@ fn normalize_required_text(label: &str, value: &str, min_len: usize, max_len: us
     }
 
     if value.len() > max_len {
-        return Err(format!("{label} darf hoechstens {max_len} Zeichen lang sein."));
+        return Err(format!("{label} darf höchstens {max_len} Zeichen lang sein."));
     }
 
     Ok(value.to_string())
@@ -234,7 +234,7 @@ fn normalize_optional_text(label: &str, value: &str, max_len: usize) -> Result<S
     let value = value.trim();
 
     if value.len() > max_len {
-        return Err(format!("{label} darf hoechstens {max_len} Zeichen lang sein."));
+        return Err(format!("{label} darf höchstens {max_len} Zeichen lang sein."));
     }
 
     Ok(value.to_string())
@@ -256,7 +256,7 @@ fn parse_datetime_input(label: &str, value: &str) -> Result<i64, String> {
     let month = parse_u8_part(date_parts.next(), label, "Monat")?;
     let day = parse_u8_part(date_parts.next(), label, "Tag")?;
     if date_parts.next().is_some() {
-        return Err(format!("{label} enthaelt ein ungueltiges Datum."));
+        return Err(format!("{label} enthält ein ungültiges Datum."));
     }
 
     let mut time_parts = time_part.split(':');
@@ -266,33 +266,33 @@ fn parse_datetime_input(label: &str, value: &str) -> Result<i64, String> {
         Some(second) if !second.is_empty() => second
             .split('.')
             .next()
-            .ok_or_else(|| format!("{label} enthaelt ungueltige Sekunden."))?
+            .ok_or_else(|| format!("{label} enthält ungültige Sekunden."))?
             .parse::<u8>()
-            .map_err(|_| format!("{label} enthaelt ungueltige Sekunden."))?,
+            .map_err(|_| format!("{label} enthält ungültige Sekunden."))?,
         _ => 0,
     };
 
-    let month = Month::try_from(month).map_err(|_| format!("{label} enthaelt einen ungueltigen Monat."))?;
+    let month = Month::try_from(month).map_err(|_| format!("{label} enthält einen ungültigen Monat."))?;
     let date = Date::from_calendar_date(year, month, day)
-        .map_err(|_| format!("{label} enthaelt ein ungueltiges Datum."))?;
+        .map_err(|_| format!("{label} enthält ein ungültiges Datum."))?;
     let time = Time::from_hms(hour, minute, second)
-        .map_err(|_| format!("{label} enthaelt eine ungueltige Uhrzeit."))?;
+        .map_err(|_| format!("{label} enthält eine ungültige Uhrzeit."))?;
 
     Ok(PrimitiveDateTime::new(date, time).assume_utc().unix_timestamp())
 }
 
 fn parse_i32_part(value: Option<&str>, label: &str, field: &str) -> Result<i32, String> {
     value
-        .ok_or_else(|| format!("{label} enthaelt kein gueltiges {field}."))?
+        .ok_or_else(|| format!("{label} enthält kein gültiges {field}."))?
         .parse::<i32>()
-        .map_err(|_| format!("{label} enthaelt kein gueltiges {field}."))
+        .map_err(|_| format!("{label} enthält kein gültiges {field}."))
 }
 
 fn parse_u8_part(value: Option<&str>, label: &str, field: &str) -> Result<u8, String> {
     value
-        .ok_or_else(|| format!("{label} enthaelt keine gueltige {field}."))?
+        .ok_or_else(|| format!("{label} enthält keine gültige {field}."))?
         .parse::<u8>()
-        .map_err(|_| format!("{label} enthaelt keine gueltige {field}."))
+        .map_err(|_| format!("{label} enthält keine gültige {field}."))
 }
 
 fn training_summary(

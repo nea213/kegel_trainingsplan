@@ -200,7 +200,7 @@ fn normalize_name(label: &str, value: &str) -> Result<String, String> {
     }
 
     if name.len() > MAX_CLUB_NAME_LEN {
-        return Err(format!("{label} darf hoechstens {MAX_CLUB_NAME_LEN} Zeichen lang sein."));
+        return Err(format!("{label} darf höchstens {MAX_CLUB_NAME_LEN} Zeichen lang sein."));
     }
 
     Ok(name.to_string())

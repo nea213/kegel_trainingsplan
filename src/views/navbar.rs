@@ -1,6 +1,5 @@
 use crate::components::auth::sanitize_return_to;
 use crate::components::ui::avatar::{Avatar, AvatarFallback, AvatarImageSize};
-use crate::components::ui::badge::{Badge, BadgeVariant};
 use crate::components::ui::button::{Button, ButtonSize, ButtonVariant};
 use crate::components::ui::dropdown_menu::{
     DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -59,7 +58,7 @@ pub fn Navbar() -> Element {
                     id: "navbar",
                     div { class: "nav-brand",
                         h1 { class: "nav-title", "Kegel Trainingsplan" }
-                        p { class: "nav-subtitle", "Authentifizierung wird geprueft..." }
+                        p { class: "nav-subtitle", "Authentifizierung wird geprüft..." }
                     }
                 }
             },
@@ -76,12 +75,11 @@ pub fn Navbar() -> Element {
                     id: "navbar",
                     div { class: "nav-brand",
                         h1 { class: "nav-title", "Kegel Trainingsplan" }
-                        p { class: "nav-subtitle", "Trainingsplanung und Benutzerverwaltung auf einer gemeinsamen Dioxus-UI-Basis." }
+                        p { class: "nav-subtitle", "Training, Gruppen und Vereine an einem Ort." }
                     }
                     div { class: "nav-main",
                         UiNavbar {
                             aria_label: "Hauptnavigation",
-                            style: "background: var(--nav-pill-bg); padding: 0.25rem; border-radius: var(--radius-2xl); box-shadow: inset 0 0 0 1px var(--nav-pill-border);",
                             NavbarItem {
                                 index: 0usize,
                                 value: "dashboard".to_string(),
@@ -156,9 +154,7 @@ fn UserMenu(user: PublicUser) -> Element {
                             }
                             div { class: "nav-user-copy",
                                 span { class: "nav-user-name", "{trigger_username}" }
-                                span { class: "nav-user-state", "Theme: {active_theme.label()}" }
                             }
-                            Badge { variant: BadgeVariant::Secondary, "Online" }
                         }
                     }
                 },
@@ -167,7 +163,7 @@ fn UserMenu(user: PublicUser) -> Element {
                 class: "nav-user-menu",
                 div { class: "nav-user-menu-header",
                     span { class: "nav-user-menu-title", "{header_username}" }
-                    span { class: "nav-user-menu-subtitle", "Persoenliches Erscheinungsbild" }
+                    span { class: "nav-user-menu-subtitle", "Persönliches Erscheinungsbild" }
                 }
                 Separator { class: "nav-user-menu-separator", decorative: true }
                 div { class: "nav-user-menu-section-label", "Theme" }
@@ -211,7 +207,7 @@ fn UserMenu(user: PublicUser) -> Element {
                             span { class: "nav-user-menu-item-description", "{option.description()}" }
                         }
                         if option == active_theme {
-                            Badge { variant: BadgeVariant::Outline, "Aktiv" }
+                            span { class: "nav-user-menu-item-description", "Aktuell" }
                         }
                     }
                 }
@@ -245,7 +241,7 @@ fn UserMenu(user: PublicUser) -> Element {
                             }
                         });
                     },
-                    {if menu_busy() { "Speichert..." } else { "Logout" }}
+                    {if menu_busy() { "Speichert..." } else { "Abmelden" }}
                 }
                 if let Some(message) = menu_status() {
                     p { class: "nav-user-menu-error", "{message}" }

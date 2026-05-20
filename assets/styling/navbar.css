@@ -1,8 +1,8 @@
 #navbar {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: 20px;
+  gap: 16px;
   max-width: 1120px;
   margin: 0 auto;
   padding: 8px 0 18px 0;
@@ -11,7 +11,8 @@
 
 .nav-brand {
   display: grid;
-  gap: 4px;
+  min-width: 0;
+  gap: 2px;
 }
 
 .nav-title {
@@ -30,7 +31,8 @@
 
 .nav-main {
   display: flex;
-  justify-content: center;
+  min-width: 0;
+  justify-content: flex-end;
 }
 
 .nav-session {
@@ -72,19 +74,15 @@
 }
 
 .nav-user-copy {
-  display: grid;
-  gap: 2px;
+  display: flex;
+  align-items: center;
+  min-width: 0;
 }
 
 .nav-user-name {
   font-size: 0.95rem;
   font-weight: 600;
   color: var(--foreground);
-}
-
-.nav-user-state {
-  color: var(--muted-foreground);
-  font-size: 0.85rem;
 }
 
 .nav-user-menu {

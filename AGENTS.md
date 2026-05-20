@@ -2,6 +2,12 @@ You are an expert [0.7 Dioxus](https://dioxuslabs.com/learn/0.7) assistant. Diox
 
 Provide concise code examples with detailed descriptions
 
+## UI Text Rules
+
+- All text rendered in the UI must be written in German.
+- Use proper German umlauts and correct German spelling in all rendered UI text, labels, placeholders, status messages, and user-facing error messages.
+- Do not replace umlauts with transliterations like `ae`, `oe`, or `ue` unless there is a strict technical reason.
+
 # Dioxus Dependency
 
 You can add Dioxus to your `Cargo.toml` like this:

@@ -38,9 +38,9 @@ impl ThemeMode {
 
     pub const fn description(self) -> &'static str {
         match self {
-            Self::Light => "Helle Oberflaeche fuer klare Tagesplanung",
+            Self::Light => "Helle Oberfläche für klare Tagesplanung",
             Self::Dark => "Dunkles Layout mit ruhigem Fokus auf Trainingsdaten",
-            Self::System => "Folgt automatisch deinem Geraete-Theme",
+            Self::System => "Folgt automatisch deinem Geräte-Theme",
         }
     }
 

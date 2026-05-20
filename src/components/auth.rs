@@ -2,10 +2,9 @@ use crate::auth::{
     current_user, login_user, logout_user, register_user, LoginInput, PublicUser, RegisterInput,
 };
 use crate::components::ui::avatar::{Avatar, AvatarFallback, AvatarImageSize};
-use crate::components::ui::badge::{Badge, BadgeVariant};
 use crate::components::ui::button::{Button, ButtonVariant};
 use crate::components::ui::card::{
-    Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle,
+    Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle,
 };
 use crate::components::ui::input::Input;
 use crate::components::ui::label::Label;
@@ -42,15 +41,6 @@ pub(crate) fn use_auth_user_resource() -> Result<Resource<Option<PublicUser>>, R
     })
 }
 
-fn user_initials(user: &PublicUser) -> String {
-    user.username
-        .chars()
-        .filter(|char| char.is_alphanumeric())
-        .take(2)
-        .collect::<String>()
-        .to_uppercase()
-}
-
 #[component]
 pub fn AccountPanel() -> Element {
     let auth_resource = use_auth_user_resource()?;
@@ -81,7 +71,13 @@ pub fn AccountPanel() -> Element {
             div { id: "auth-panel", class: "auth-panel auth-panel--account" }
         },
         Some(Some(user)) => {
-            let initials = user_initials(&user);
+            let initials = user
+                .username
+                .chars()
+                .filter(|char| char.is_alphanumeric())
+                .take(2)
+                .collect::<String>()
+                .to_uppercase();
 
             rsx! {
                 document::Link { rel: "stylesheet", href: AUTH_CSS }
@@ -92,16 +88,9 @@ pub fn AccountPanel() -> Element {
                     Card {
                         class: "auth-card auth-card--wide",
                         CardHeader {
-                            div { class: "auth-card-title-row",
-                                div {
-                                    CardTitle { "Willkommen, {user.username}" }
-                                    CardDescription {
-                                        "Deine Session liegt serverseitig in SQLite und wird über Cookies für Web und Mobile wiederverwendet."
-                                    }
-                                }
-                                CardAction {
-                                    Badge { variant: BadgeVariant::Secondary, "Sitzung aktiv" }
-                                }
+                            CardTitle { "Willkommen, {user.username}" }
+                            CardDescription {
+                                "Du bist angemeldet und kannst direkt weiterarbeiten."
                             }
                         }
                         CardContent {
@@ -111,7 +100,7 @@ pub fn AccountPanel() -> Element {
                                 }
                                 div { class: "auth-user-meta",
                                     p { class: "auth-user-copy", "Angemeldet als {user.username}" }
-                                    Badge { variant: BadgeVariant::Outline, "Server-Session" }
+                                    p { class: "auth-help", "Deine Sitzung bleibt aktiv, bis du dich abmeldest." }
                                 }
                             }
                             Separator { horizontal: true, decorative: true, style: "margin: 1rem 0;" }
@@ -155,15 +144,7 @@ pub fn AccountPanel() -> Element {
 
                     if let Some((success, message)) = status() {
                         div {
-                            class: "auth-status",
-                            Badge {
-                                variant: if success {
-                                    BadgeVariant::Secondary
-                                } else {
-                                    BadgeVariant::Destructive
-                                },
-                                {if success { "Status" } else { "Fehler" }}
-                            }
+                            class: if success { "auth-status auth-status--success" } else { "auth-status auth-status--error" },
                             p { class: "auth-help", "{message}" }
                         }
                     }
@@ -194,14 +175,9 @@ pub fn LoginPanel(return_to: Option<String>) -> Element {
             Card {
                 class: "auth-card auth-card--wide",
                 CardHeader {
-                    div { class: "auth-card-title-row",
-                        CardTitle { "Login" }
-                        CardAction {
-                            Badge { variant: BadgeVariant::Outline, "Bestehend" }
-                        }
-                    }
+                    CardTitle { "Login" }
                     CardDescription {
-                        "Melde dich mit deinem Benutzernamen und Passwort an, um zu deiner zuletzt angeforderten Seite zurueckzukehren."
+                        "Melde dich mit deinem Benutzernamen und Passwort an, um zu deiner zuletzt angeforderten Seite zurückzukehren."
                     }
                 }
                 CardContent {
@@ -229,10 +205,9 @@ pub fn LoginPanel(return_to: Option<String>) -> Element {
                         }
                     }
                 }
-                CardFooter { style: "flex-direction: column; align-items: stretch; gap: 0.75rem; margin-top: 0.75rem;",
+                CardFooter { class: "auth-actions auth-actions--stack",
                     Button {
                         variant: ButtonVariant::Secondary,
-                        style: "width: 100%;",
                         disabled: busy(),
                         onclick: move |_| {
                             if busy() {
@@ -267,7 +242,7 @@ pub fn LoginPanel(return_to: Option<String>) -> Element {
                                 }
                             });
                         },
-                        {if busy() { "Prueft..." } else { "Einloggen" }}
+                        {if busy() { "Prüft..." } else { "Einloggen" }}
                     }
                     Button {
                         variant: ButtonVariant::Link,
@@ -283,8 +258,7 @@ pub fn LoginPanel(return_to: Option<String>) -> Element {
 
             if let Some(message) = status() {
                 div {
-                    class: "auth-status",
-                    Badge { variant: BadgeVariant::Destructive, "Fehler" }
+                    class: "auth-status auth-status--error",
                     p { class: "auth-help", "{message}" }
                 }
             }
@@ -315,14 +289,9 @@ pub fn RegisterPanel(return_to: Option<String>) -> Element {
             Card {
                 class: "auth-card auth-card--wide",
                 CardHeader {
-                    div { class: "auth-card-title-row",
-                        CardTitle { "Registrieren" }
-                        CardAction {
-                            Badge { variant: BadgeVariant::Secondary, "Neu" }
-                        }
-                    }
+                    CardTitle { "Registrieren" }
                     CardDescription {
-                        "Registrierungen laufen nur mit gueltigem Einladungscode. Nach erfolgreicher Registrierung wirst du direkt eingeloggt."
+                        "Registrierungen laufen nur mit gültigem Einladungscode. Nach erfolgreicher Registrierung wirst du direkt eingeloggt."
                     }
                 }
                 CardContent {
@@ -354,11 +323,11 @@ pub fn RegisterPanel(return_to: Option<String>) -> Element {
 
                                                 match preview.group_name {
                                                     Some(group_name) => format!(
-                                                        "Einladung fuer {role} in {group_name} bei {}.",
+                                                        "Einladung für {role} in {group_name} bei {}.",
                                                         preview.club_name
                                                     ),
                                                     None => format!(
-                                                        "Einladung fuer {role} im Verein {}.",
+                                                        "Einladung für {role} im Verein {}.",
                                                         preview.club_name
                                                     ),
                                                 }
@@ -393,14 +362,12 @@ pub fn RegisterPanel(return_to: Option<String>) -> Element {
                         if let Some(preview) = invitation_preview() {
                             match preview {
                                 Ok(message) => rsx! {
-                                    div { class: "auth-status",
-                                        Badge { variant: BadgeVariant::Secondary, "Einladung" }
+                                    div { class: "auth-status auth-status--success",
                                         p { class: "auth-help", "{message}" }
                                     }
                                 },
                                 Err(error) => rsx! {
-                                    div { class: "auth-status",
-                                        Badge { variant: BadgeVariant::Destructive, "Fehler" }
+                                    div { class: "auth-status auth-status--error",
                                         p { class: "auth-help", "{error}" }
                                     }
                                 },
@@ -408,9 +375,8 @@ pub fn RegisterPanel(return_to: Option<String>) -> Element {
                         }
                     }
                 }
-                CardFooter { style: "flex-direction: column; align-items: stretch; gap: 0.75rem; margin-top: 0.75rem;",
+                CardFooter { class: "auth-actions auth-actions--stack",
                     Button {
-                        style: "width: 100%;",
                         disabled: busy(),
                         onclick: move |_| {
                             if busy() {
@@ -464,8 +430,7 @@ pub fn RegisterPanel(return_to: Option<String>) -> Element {
 
             if let Some(message) = status() {
                 div {
-                    class: "auth-status",
-                    Badge { variant: BadgeVariant::Destructive, "Fehler" }
+                    class: "auth-status auth-status--error",
                     p { class: "auth-help", "{message}" }
                 }
             }

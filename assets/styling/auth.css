@@ -93,6 +93,15 @@
   flex-wrap: wrap;
 }
 
+.auth-actions--stack {
+  display: grid;
+  gap: 12px;
+}
+
+.auth-actions--stack .dx-button {
+  width: 100%;
+}
+
 .auth-user-row {
   display: flex;
   align-items: center;
@@ -117,14 +126,23 @@
 }
 
 .auth-status {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
+  display: grid;
+  gap: 6px;
   padding: 14px 16px;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--muted);
   box-shadow: var(--shadow-xs);
+}
+
+.auth-status--error {
+  border-color: color-mix(in oklab, var(--destructive) 24%, var(--border));
+  background: color-mix(in oklab, var(--destructive) 8%, var(--background));
+}
+
+.auth-status--success {
+  border-color: color-mix(in oklab, var(--ring) 28%, var(--border));
+  background: color-mix(in oklab, var(--ring) 10%, var(--background));
 }
 
 @media (max-width: 640px) {

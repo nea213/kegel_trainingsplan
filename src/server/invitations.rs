@@ -28,7 +28,7 @@ pub async fn create(input: CreateInvitationInput) -> Result<CreatedInvitation, S
     let actor = permissions::require_invitation_manager(input.club_id, input.group_id).await?;
 
     if input.role == InvitationRole::Trainer && !actor.is_system_admin {
-        return Err("Nur System-Admins duerfen Trainer-Einladungen erzeugen.".to_string());
+        return Err("Nur System-Admins dürfen Trainer-Einladungen erzeugen.".to_string());
     }
 
     let db = db::connection().await.map_err(db_error)?;
@@ -90,11 +90,11 @@ pub async fn revoke(invitation_id: i32) -> Result<(), String> {
 
     let actor = permissions::require_invitation_manager(invitation.club_id, invitation.group_id).await?;
     if role_from_str(&invitation.target_role)? == InvitationRole::Trainer && !actor.is_system_admin {
-        return Err("Nur System-Admins duerfen Trainer-Einladungen widerrufen.".to_string());
+        return Err("Nur System-Admins dürfen Trainer-Einladungen widerrufen.".to_string());
     }
 
     if invitation.used_at.is_some() {
-        return Err("Bereits verwendete Einladungen koennen nicht widerrufen werden.".to_string());
+        return Err("Bereits verwendete Einladungen können nicht widerrufen werden.".to_string());
     }
 
     let mut active_invitation: invitation::ActiveModel = invitation.into();
@@ -176,7 +176,7 @@ pub async fn register_with_invitation(
     if role_from_str(&invitation.target_role)? == InvitationRole::Trainer {
         let group_id = invitation
             .group_id
-            .ok_or_else(|| "Trainer-Einladungen muessen an eine Gruppe gebunden sein.".to_string())?;
+            .ok_or_else(|| "Trainer-Einladungen müssen an eine Gruppe gebunden sein.".to_string())?;
 
         group_trainer::ActiveModel {
             group_id: Set(group_id),
@@ -200,12 +200,12 @@ pub async fn register_with_invitation(
 fn validate_create_input(input: &CreateInvitationInput) -> Result<(), String> {
     if !(INVITATION_MIN_DAYS..=INVITATION_MAX_DAYS).contains(&input.expires_in_days) {
         return Err(format!(
-            "Die Einladung muss zwischen {INVITATION_MIN_DAYS} und {INVITATION_MAX_DAYS} Tagen gueltig sein."
+            "Die Einladung muss zwischen {INVITATION_MIN_DAYS} und {INVITATION_MAX_DAYS} Tagen gültig sein."
         ));
     }
 
     if input.role == InvitationRole::Trainer && input.group_id.is_none() {
-        return Err("Trainer-Einladungen muessen an eine Gruppe gebunden sein.".to_string());
+        return Err("Trainer-Einladungen müssen an eine Gruppe gebunden sein.".to_string());
     }
 
     if input.role == InvitationRole::Player && input.group_id.is_some() {
@@ -234,7 +234,7 @@ async fn validate_scope(db: &DatabaseConnection, input: &CreateInvitationInput) 
             .ok_or_else(|| "Die Zielgruppe wurde nicht gefunden.".to_string())?;
 
         if group.club_id != input.club_id {
-            return Err("Die Zielgruppe gehoert nicht zum ausgewaehlten Verein.".to_string());
+            return Err("Die Zielgruppe gehört nicht zum ausgewählten Verein.".to_string());
         }
     }
 
@@ -263,7 +263,7 @@ async fn validate_registration_scope(
             .ok_or_else(|| "Die Zielgruppe wurde nicht gefunden.".to_string())?;
 
         if group.club_id != invitation.club_id {
-            return Err("Die Einladung verweist auf eine ungueltige Gruppen-Zuordnung.".to_string());
+            return Err("Die Einladung verweist auf eine ungültige Gruppen-Zuordnung.".to_string());
         }
     }
 
@@ -302,7 +302,7 @@ async fn find_active_invitation_by_code(
 ) -> Result<invitation::Model, String> {
     let code = code.trim();
     if code.len() < 8 {
-        return Err("Der Einladungscode ist ungueltig.".to_string());
+        return Err("Der Einladungscode ist ungültig.".to_string());
     }
 
     let invitations = invitation::Entity::find()
@@ -323,7 +323,7 @@ async fn find_active_invitation_by_code(
         }
     }
 
-    Err("Der Einladungscode ist ungueltig oder nicht mehr aktiv.".to_string())
+    Err("Der Einladungscode ist ungültig oder nicht mehr aktiv.".to_string())
 }
 
 fn invitation_summary(invitation: invitation::Model) -> InvitationSummary {
@@ -349,7 +349,7 @@ fn role_from_str(value: &str) -> Result<InvitationRole, String> {
     match value.trim().to_ascii_lowercase().as_str() {
         "trainer" => Ok(InvitationRole::Trainer),
         "player" => Ok(InvitationRole::Player),
-        _ => Err("Die Einladung enthaelt eine ungueltige Rolle.".to_string()),
+        _ => Err("Die Einladung enthält eine ungültige Rolle.".to_string()),
     }
 }
 
