@@ -27,21 +27,21 @@
   width: 280px;
   height: 280px;
   border-radius: 999px;
-  opacity: 0.45;
-  filter: blur(70px);
+  opacity: 0.18;
+  filter: blur(96px);
   content: "";
 }
 
 .auth-panel--public::before {
   top: 8%;
   left: max(2%, calc(50% - 420px));
-  background: var(--bg-app-accent);
+  background: color-mix(in oklab, var(--ring) 28%, transparent);
 }
 
 .auth-panel--public::after {
   right: max(2%, calc(50% - 400px));
   bottom: 10%;
-  background: var(--bg-app-accent-2);
+  background: color-mix(in oklab, var(--primary) 16%, transparent);
 }
 
 .auth-page-shell {
@@ -62,8 +62,7 @@
 
 .auth-card {
   min-height: 100%;
-  box-shadow: var(--surface-shadow);
-  backdrop-filter: blur(18px);
+  box-shadow: none;
 }
 
 .auth-card--wide {
@@ -107,13 +106,13 @@
 
 .auth-user-copy {
   margin: 0;
-  color: var(--text-primary);
+  color: var(--foreground);
   font-weight: 600;
 }
 
 .auth-help {
   margin: 0;
-  color: var(--text-secondary);
+  color: var(--muted-foreground);
   line-height: 1.6;
 }
 
@@ -122,10 +121,10 @@
   align-items: flex-start;
   gap: 12px;
   padding: 14px 16px;
-  border: 1px solid var(--border-soft);
-  border-radius: 14px;
-  background: color-mix(in oklab, var(--bg-surface-elevated) 92%, transparent);
-  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--muted);
+  box-shadow: var(--shadow-xs);
 }
 
 @media (max-width: 640px) {

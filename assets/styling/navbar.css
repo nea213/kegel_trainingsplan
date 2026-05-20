@@ -3,10 +3,10 @@
   grid-template-columns: minmax(0, 1.2fr) auto minmax(0, 1fr);
   align-items: center;
   gap: 20px;
-  max-width: 1080px;
+  max-width: 1120px;
   margin: 0 auto;
-  padding: 8px 0 20px 0;
-  border-bottom: 1px solid var(--border-soft);
+  padding: 8px 0 18px 0;
+  border-bottom: 1px solid var(--border);
 }
 
 .nav-brand {
@@ -16,13 +16,15 @@
 
 .nav-title {
   margin: 0;
-  font-size: 1.15rem;
-  color: var(--text-primary);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--foreground);
 }
 
 .nav-subtitle {
   margin: 0;
-  color: var(--text-secondary);
+  color: var(--muted-foreground);
+  font-size: 0.9rem;
   line-height: 1.5;
 }
 
@@ -54,17 +56,18 @@
   align-items: center;
   gap: 12px;
   padding: 8px 12px;
-  border: 1px solid var(--border-soft);
-  border-radius: 16px;
-  background: color-mix(in oklab, var(--bg-surface) 88%, transparent);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-  transition: border-color 150ms ease, transform 150ms ease, background-color 150ms ease;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--background);
+  box-shadow: var(--shadow-xs);
+  transition: border-color 150ms ease, transform 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
 }
 
 .nav-user-menu-trigger:hover .nav-user,
 .nav-user-menu-trigger:focus-visible .nav-user {
-  border-color: var(--border-strong);
-  background: color-mix(in oklab, var(--bg-surface-elevated) 88%, transparent);
+  border-color: var(--ring);
+  background: var(--muted);
+  box-shadow: var(--shadow-sm);
   transform: translateY(-1px);
 }
 
@@ -76,22 +79,21 @@
 .nav-user-name {
   font-size: 0.95rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--foreground);
 }
 
 .nav-user-state {
-  color: var(--text-secondary);
+  color: var(--muted-foreground);
   font-size: 0.85rem;
 }
 
 .nav-user-menu {
   min-width: 300px;
   padding: 0.4rem;
-  border: 1px solid var(--border-soft);
-  border-radius: 18px;
-  background: color-mix(in oklab, var(--bg-surface) 94%, transparent);
-  box-shadow: var(--surface-shadow);
-  backdrop-filter: blur(18px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--popover);
+  box-shadow: var(--shadow-lg);
 }
 
 .nav-user-menu-header {
@@ -103,17 +105,17 @@
 .nav-user-menu-title {
   font-size: 0.95rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--popover-foreground);
 }
 
 .nav-user-menu-subtitle {
   font-size: 0.82rem;
-  color: var(--text-secondary);
+  color: var(--muted-foreground);
 }
 
 .nav-user-menu-section-label {
   padding: 0.3rem 0.75rem 0.2rem;
-  color: var(--text-muted);
+  color: var(--muted-foreground);
   font-size: 0.76rem;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -132,13 +134,13 @@
 }
 
 .nav-user-menu-item-title {
-  color: var(--text-primary);
+  color: var(--foreground);
   font-size: 0.9rem;
   font-weight: 600;
 }
 
 .nav-user-menu-item-description {
-  color: var(--text-secondary);
+  color: var(--muted-foreground);
   font-size: 0.79rem;
   line-height: 1.4;
 }
@@ -152,7 +154,7 @@
 .nav-user-menu-error {
   margin: 0.35rem 0 0;
   padding: 0.2rem 0.5rem 0.1rem;
-  color: var(--secondary-error-color);
+  color: var(--destructive);
   font-size: 0.8rem;
   line-height: 1.45;
 }

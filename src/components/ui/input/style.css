@@ -6,33 +6,29 @@
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  padding: 0.25rem;
   padding: 8px 12px;
-  border: none;
-  border-radius: 0.5rem;
-  border-radius: calc(0.5rem);
-  background: none;
-  background-color: var(--light, var(--primary-color)) var(--dark, color-mix(in oklab, #FFFFFF26 30%, transparent));
-  box-shadow: inset 0 0 0 1px var(--light, var(--primary-color-6))
-    var(--dark, var(--primary-color-7));
-  color: var(--secondary-color-4);
+  border: 1px solid var(--input);
+  border-radius: var(--radius-md);
+  background-color: var(--background);
+  box-shadow: var(--shadow-2xs);
+  color: var(--foreground);
   gap: 0.25rem;
-  transition: background-color 100ms ease-out;
+  outline: none;
+  transition: background-color 100ms ease-out, border-color 100ms ease-out, box-shadow 100ms ease-out;
 }
 
 .dx-input::placeholder {
-  color: var(--secondary-color-5);
+  color: var(--muted-foreground);
 }
 
 .dx-input:disabled {
-  color: var(--secondary-color-5);
+  color: var(--muted-foreground);
   cursor: not-allowed;
 }
 
 .dx-input:hover:not(:disabled),
 .dx-input:focus-visible {
-  background: var(--light, var(--primary-color-4))
-    var(--dark, color-mix(in oklab, #FFFFFF26 50%, transparent));
-  color: var(--secondary-color-1);
-  outline: none;
+  border-color: var(--ring);
+  background-color: var(--background);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 24%, transparent);
 }

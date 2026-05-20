@@ -13,10 +13,11 @@
   z-index: 1000;
   max-width: 250px;
   padding: 8px 12px;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
   animation: dx-tooltip-fade-in 0.2s ease-in-out;
-  background-color: var(--secondary-color-4);
-  color: var(--primary-color);
+  background-color: var(--foreground);
+  box-shadow: var(--shadow-sm);
+  color: var(--background);
   font-size: 14px;
   line-height: 1.4;
 }
@@ -42,7 +43,7 @@
 .dx-tooltip-content[data-side="top"]::after {
   top: calc(100% - 0.25rem);
   left: 50%;
-  border-color: var(--secondary-color-4);
+  border-color: var(--foreground);
   border-radius: 0 0 0.1rem;
 }
 
@@ -57,7 +58,7 @@
 .dx-tooltip-content[data-side="right"]::after {
   top: calc(50% - 0.25rem);
   left: 0;
-  border-color: var(--secondary-color-4);
+  border-color: var(--foreground);
   border-radius: 0 0 0 0.1rem;
 }
 
@@ -72,7 +73,7 @@
 .dx-tooltip-content[data-side="bottom"]::after {
   bottom: calc(100% - 0.25rem);
   left: 50%;
-  border-color: var(--secondary-color-4);
+  border-color: var(--foreground);
   border-radius: 0.1rem 0 0;
 }
 
@@ -87,7 +88,7 @@
 .dx-tooltip-content[data-side="left"]::after {
   top: calc(50% - 0.25rem);
   right: -0.25rem;
-  border-color: var(--secondary-color-4);
+  border-color: var(--foreground);
   border-radius: 0 0.1rem 0 0;
 }
 

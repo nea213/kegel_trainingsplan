@@ -19,18 +19,20 @@
   box-sizing: border-box;
   align-items: center;
   justify-content: center;
-  border-radius: 0.625rem;
-  color: var(--secondary-color-4);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  color: var(--muted-foreground);
   font-size: 0.875rem;
   font-weight: 500;
   gap: 0.5rem;
   line-height: 1;
   text-decoration: none;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .dx-pagination-link:focus-visible {
-  box-shadow: 0 0 0 2px var(--focused-border-color);
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 24%, transparent);
 }
 
 .dx-pagination-link[data-size="icon"] {
@@ -43,7 +45,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--secondary-color-4);
+  color: var(--muted-foreground);
 }
 
 .dx-pagination-link[data-size="icon"],
@@ -58,17 +60,19 @@
 }
 
 .dx-pagination-link[data-active="true"] {
-  border: 1px solid var(--primary-color-6);
-  background-color: var(--light, var(--primary-color)) var(--dark, var(--primary-color-3));
+  border-color: var(--border);
+  background-color: var(--background);
+  box-shadow: var(--shadow-xs);
+  color: var(--foreground);
 }
 
 .dx-pagination-link[data-active="true"]:hover {
-  background-color: var(--primary-color-4);
+  background-color: var(--muted);
 }
 
 .dx-pagination-link[data-active="false"]:hover {
-  background-color: var(--primary-color-5);
-  color: var(--secondary-color-1);
+  background-color: var(--accent);
+  color: var(--accent-foreground);
 }
 
 .dx-pagination-link[data-kind="previous"],

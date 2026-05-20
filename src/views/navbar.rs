@@ -81,7 +81,7 @@ pub fn Navbar() -> Element {
                     div { class: "nav-main",
                         UiNavbar {
                             aria_label: "Hauptnavigation",
-                            style: "background: var(--nav-pill-bg); padding: 0.35rem; border-radius: 0.9rem; box-shadow: inset 0 0 0 1px var(--nav-pill-border);",
+                            style: "background: var(--nav-pill-bg); padding: 0.25rem; border-radius: var(--radius-2xl); box-shadow: inset 0 0 0 1px var(--nav-pill-border);",
                             NavbarItem {
                                 index: 0usize,
                                 value: "dashboard".to_string(),

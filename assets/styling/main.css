@@ -1,21 +1,32 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap");
+
 html {
-    background: var(--bg-app);
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
 }
 
 body {
-    background:
-        radial-gradient(circle at top left, var(--bg-app-accent), transparent 32%),
-        radial-gradient(circle at bottom right, var(--bg-app-accent-2), transparent 34%),
-        linear-gradient(180deg, color-mix(in oklab, var(--bg-app) 92%, var(--bg-surface) 8%), var(--bg-app));
-    color: var(--text-primary);
-    font-family: Inter, "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    line-height: 1.5;
     margin: 0;
     min-height: 100vh;
     padding: 20px;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
 }
 
 * {
     box-sizing: border-box;
+}
+
+button,
+input,
+select,
+textarea {
+    font: inherit;
 }
 
 a {
@@ -29,8 +40,7 @@ a {
 
 .home-intro-card {
     overflow: hidden;
-    backdrop-filter: blur(18px);
-    box-shadow: var(--surface-shadow);
+    box-shadow: var(--shadow-xs);
 }
 
 .home-badges {
@@ -51,7 +61,7 @@ a {
 .home-divider {
     max-width: 980px;
     margin: 24px auto 0 auto;
-    opacity: 0.65;
+    opacity: 1;
 }
 
 @media (max-width: 640px) {
