@@ -48,6 +48,27 @@ Regeln:
 - ist nur eine der beiden Variablen gesetzt, bricht die Initialisierung mit einer Fehlermeldung ab
 - existiert bereits ein Benutzer mit dem konfigurierten Benutzernamen, wird kein Admin erzeugt und die Initialisierung bricht mit einer Fehlermeldung ab
 
+## Entwicklungsdaten
+
+Für lokale Tests kannst du optionale Entwicklungsdaten aktivieren:
+
+```sh
+SEED_DEV_DATA=true dx serve
+```
+
+Alternativ mit Cargo:
+
+```sh
+SEED_DEV_DATA=true cargo run --no-default-features --features web,server
+```
+
+Eigenschaften:
+
+- die Seed-Logik läuft nur bei gesetztem `SEED_DEV_DATA=true`
+- die Seed-Daten sind idempotent und können mehrfach ausgeführt werden
+- es werden ein Testverein, Gruppen, Teams, Trainings und mehrere Testnutzer angelegt
+- Beispiel-Login: `trainer.jugend` mit Passwort `Testpasswort123`
+
 ## Auth-Cookie
 Für lokale HTTP-Entwicklung ist das Cookie standardmäßig **nicht** `secure`, damit Login unter `localhost` funktioniert.
 

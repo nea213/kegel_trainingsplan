@@ -9,6 +9,7 @@ pub mod group_trainers;
 pub mod groups;
 pub mod invitations;
 pub mod permissions;
+pub mod seed;
 pub mod team_players;
 pub mod teams;
 pub mod training;

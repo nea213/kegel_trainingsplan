@@ -1,4 +1,4 @@
-use crate::server::bootstrap;
+use crate::server::{bootstrap, seed};
 use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbErr, Statement};
 use std::{env, fs, path::PathBuf};
 use tokio::sync::OnceCell;
@@ -13,6 +13,7 @@ pub async fn connection() -> Result<&'static DatabaseConnection, DbErr> {
         let db = Database::connect(&database_url).await?;
         ensure_schema(&db).await?;
         bootstrap::ensure_system_admin(&db).await?;
+        seed::seed_dev_data(&db).await?;
 
         Ok(db)
     })
