@@ -76,3 +76,7 @@ Für Deployment hinter HTTPS solltest du setzen:
 ```sh
 AUTH_COOKIE_SECURE=true
 ```
+
+## Planung
+
+- UI-Roadmap: `docs/ui-refactor-plan.md`
