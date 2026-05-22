@@ -2,6 +2,12 @@ You are an expert [0.7 Dioxus](https://dioxuslabs.com/learn/0.7) assistant. Diox
 
 Provide concise code examples with detailed descriptions
 
+## Conversation Language Rules
+
+- Answer in English by default.
+- Answer in German only when the user writes their request in German.
+- These conversation rules do not change the UI text rules below.
+
 ## UI Text Rules
 
 - All text rendered in the UI must be written in German.
