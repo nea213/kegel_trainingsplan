@@ -12,7 +12,7 @@ pub fn Accordion(props: AccordionProps) -> Element {
     rsx! {
         accordion::Accordion {
             class: Styles::dx_accordion,
-            width: "15rem",
+            width: "100%",
             id: props.id,
             allow_multiple_open: props.allow_multiple_open,
             disabled: props.disabled,

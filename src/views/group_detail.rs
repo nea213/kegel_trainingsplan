@@ -1,4 +1,6 @@
-use crate::club_memberships::{assign_player_to_team, list_unassigned_club_members, PlayerAssignmentInput};
+use crate::club_memberships::{
+    assign_player_to_team, list_unassigned_club_members, PlayerAssignmentInput,
+};
 use crate::components::ui::button::{Button, ButtonVariant};
 use crate::components::ui::card::{Card, CardContent, CardDescription, CardHeader, CardTitle};
 use crate::components::ui::input::Input;
@@ -14,6 +16,12 @@ use crate::training::{
     training_scope_label, CreateTrainingSessionInput,
 };
 use dioxus::prelude::*;
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum TrainingScopeSelection {
+    WholeGroup,
+    ActiveTeam,
+}
 
 #[component]
 pub fn GroupDetail(group_id: i32) -> Element {
@@ -31,7 +39,7 @@ pub fn GroupDetail(group_id: i32) -> Element {
     let mut training_location = use_signal(String::new);
     let mut training_start_at = use_signal(String::new);
     let mut training_end_at = use_signal(String::new);
-    let mut training_team_id = use_signal(|| None::<i32>);
+    let mut training_scope = use_signal(|| TrainingScopeSelection::WholeGroup);
     let mut creating_training = use_signal(|| false);
 
     match context_state {
@@ -53,7 +61,12 @@ pub fn GroupDetail(group_id: i32) -> Element {
             }
         },
         Some(Ok(context)) => {
-            let Some(group) = context.managed_groups.iter().find(|group| group.group_id == group_id).cloned() else {
+            let Some(group) = context
+                .managed_groups
+                .iter()
+                .find(|group| group.group_id == group_id)
+                .cloned()
+            else {
                 return rsx! {
                     section { class: "page-section",
                         Card { class: "home-intro-card",
@@ -83,6 +96,15 @@ pub fn GroupDetail(group_id: i32) -> Element {
             let teams_state = teams_resource.read().as_ref().cloned();
             let members_state = members_resource.read().as_ref().cloned();
             let training_state = training_resource.read().as_ref().cloned();
+            let active_team_name = match &teams_state {
+                Some(Ok(teams)) => teams
+                    .iter()
+                    .find(|team| Some(team.id) == selected_team())
+                    .map(|team| team.name.clone()),
+                _ => None,
+            };
+            let active_team_ready =
+                training_scope() != TrainingScopeSelection::ActiveTeam || selected_team().is_some();
 
             rsx! {
                 section { class: "page-section",
@@ -90,80 +112,239 @@ pub fn GroupDetail(group_id: i32) -> Element {
                         Card { class: "home-intro-card",
                             CardHeader {
                                 CardTitle { "{group.group_name}" }
-                                CardDescription {
-                                    "{group.club_name}"
-                                }
+                                CardDescription { "{group.club_name}" }
                             }
                             CardContent {
-                                p { class: "section-meta",
-                                    "Wähle eine Mannschaft aus, bevor du Spieler zuordnest oder mannschaftsbezogene Trainings planst."
+                                div { class: "section-stack",
+                                    p { class: "section-meta",
+                                        "Arbeite Schritt für Schritt: erst die aktive Mannschaft festlegen, dann Spieler zuweisen und anschließend Trainings planen."
+                                    }
+                                    if let Some((success, message)) = status() {
+                                        div { class: if success { "auth-status auth-status--success" } else { "auth-status auth-status--error" },
+                                            p { class: "auth-help", "{message}" }
+                                        }
+                                    }
                                 }
                             }
                         }
 
                         Card { class: "home-intro-card",
                             CardHeader {
-                                CardTitle { "Mannschaften" }
+                                CardTitle { "1. Mannschaft wählen" }
                                 CardDescription {
-                                    "Wähle die Mannschaft aus, mit der du gerade arbeitest."
-                                }
-                            }
-                            CardContent {
-                                match teams_state {
-                                    None => rsx! { p { class: "auth-help", "Mannschaften werden geladen..." } },
-                                    Some(Err(error)) => rsx! {
-                                        div { class: "auth-status auth-status--error",
-                                            p { class: "auth-help", "Mannschaften konnten nicht geladen werden: {error}" }
-                                        }
-                                    },
-                                    Some(Ok(teams)) if teams.is_empty() => rsx! {
-                                        p { class: "auth-help", "Es wurden noch keine Mannschaften in dieser Gruppe angelegt." }
-                                    },
-                                    Some(Ok(teams)) => {
-                                        let team_count = teams.len();
-
-                                        rsx! {
-                                            ItemGroup {
-                                                for (index, team) in teams.into_iter().enumerate() {
-                                                    Item {
-                                                        ItemContent {
-                                                            ItemTitle { "{team.name}" }
-                                                            if selected_team() == Some(team.id) {
-                                                                ItemDescription { "Aktuell ausgewählt" }
-                                                            }
-                                                        }
-                                                        ItemActions {
-                                                            Button {
-                                                                variant: if selected_team() == Some(team.id) {
-                                                                    ButtonVariant::Secondary
-                                                                } else {
-                                                                    ButtonVariant::Outline
-                                                                },
-                                                                onclick: move |_| selected_team.set(Some(team.id)),
-                                                                {if selected_team() == Some(team.id) { "Ausgewählt" } else { "Auswählen" }}
-                                                            }
-                                                        }
-                                                    }
-                                                    if index + 1 < team_count {
-                                                        ItemSeparator {}
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    },
-                                }
-                            }
-                        }
-
-                        Card { class: "home-intro-card",
-                            CardHeader {
-                                CardTitle { "Trainingsplanung" }
-                                CardDescription {
-                                    "Lege gruppenweite oder mannschaftsbezogene Trainings an."
+                                    "Lege fest, mit welcher Mannschaft du gerade arbeitest."
                                 }
                             }
                             CardContent {
                                 div { class: "section-stack",
+                                    div { class: "detail-card detail-card-muted",
+                                        p { class: "section-label", "Aktive Mannschaft" }
+                                        p { class: "detail-card-title",
+                                            {active_team_name.clone().unwrap_or_else(|| "Noch keine Mannschaft ausgewählt".to_string())}
+                                        }
+                                        p { class: "section-meta",
+                                            "Diese Auswahl wird für Spielerzuweisungen genutzt und kann optional auch das Ziel neuer Trainings sein."
+                                        }
+                                    }
+                                    match teams_state {
+                                        None => rsx! { p { class: "auth-help", "Mannschaften werden geladen..." } },
+                                        Some(Err(error)) => rsx! {
+                                            div { class: "auth-status auth-status--error",
+                                                p { class: "auth-help", "Mannschaften konnten nicht geladen werden: {error}" }
+                                            }
+                                        },
+                                        Some(Ok(teams)) if teams.is_empty() => rsx! {
+                                            p { class: "auth-help", "Es wurden noch keine Mannschaften in dieser Gruppe angelegt." }
+                                        },
+                                        Some(Ok(teams)) => {
+                                            let team_count = teams.len();
+
+                                            rsx! {
+                                                ItemGroup {
+                                                    for (index, team) in teams.into_iter().enumerate() {
+                                                        Item {
+                                                            ItemContent {
+                                                                ItemTitle { "{team.name}" }
+                                                                ItemDescription {
+                                                                    {if selected_team() == Some(team.id) {
+                                                                        "Aktive Mannschaft".to_string()
+                                                                    } else {
+                                                                        "Für Zuweisungen und teambezogene Trainings verfügbar".to_string()
+                                                                    }}
+                                                                }
+                                                            }
+                                                            ItemActions {
+                                                                Button {
+                                                                    variant: if selected_team() == Some(team.id) {
+                                                                        ButtonVariant::Secondary
+                                                                    } else {
+                                                                        ButtonVariant::Outline
+                                                                    },
+                                                                    onclick: move |_| selected_team.set(Some(team.id)),
+                                                                    {if selected_team() == Some(team.id) { "Aktiv" } else { "Auswählen" }}
+                                                                }
+                                                            }
+                                                        }
+                                                        if index + 1 < team_count {
+                                                            ItemSeparator {}
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                    }
+                                }
+                            }
+                        }
+
+                        Card { class: "home-intro-card",
+                            CardHeader {
+                                CardTitle { "2. Spieler ohne Mannschaft zuweisen" }
+                                CardDescription {
+                                    "Ordne wartende Spieler direkt der aktiven Mannschaft zu."
+                                }
+                            }
+                            CardContent {
+                                div { class: "section-stack",
+                                    if let Some(team_name) = active_team_name.clone() {
+                                        div { class: "detail-card detail-card-muted",
+                                            p { class: "section-label", "Ziel für neue Zuweisungen" }
+                                            p { class: "detail-card-title", "{team_name}" }
+                                        }
+                                    } else {
+                                        div { class: "detail-card detail-card-muted",
+                                            p { class: "section-label", "Ziel für neue Zuweisungen" }
+                                            p { class: "detail-card-title", "Bitte zuerst eine Mannschaft auswählen" }
+                                        }
+                                    }
+
+                                    match members_state {
+                                        None => rsx! { p { class: "auth-help", "Vereinsmitglieder werden geladen..." } },
+                                        Some(Err(error)) => rsx! {
+                                            div { class: "auth-status auth-status--error",
+                                                p { class: "auth-help", "Vereinsmitglieder konnten nicht geladen werden: {error}" }
+                                            }
+                                        },
+                                        Some(Ok(members)) if members.is_empty() => rsx! {
+                                            p { class: "auth-help", "Aktuell warten keine Spieler auf eine Mannschaftszuteilung." }
+                                        },
+                                        Some(Ok(members)) => {
+                                            let member_count = members.len();
+
+                                            rsx! {
+                                                ItemGroup {
+                                                    for (index, member) in members.into_iter().enumerate() {
+                                                        {
+                                                            let member_user_id = member.user_id;
+                                                            let member_club_id = member.club_id;
+                                                            let member_username = member.username.clone();
+
+                                                            rsx! {
+                                                                Item {
+                                                                    ItemContent {
+                                                                        ItemTitle { "{member.username}" }
+                                                                        ItemDescription { "Mitglied in {member.club_name}" }
+                                                                    }
+                                                                    ItemActions {
+                                                                        Button {
+                                                                            variant: ButtonVariant::Outline,
+                                                                            disabled: selected_team().is_none() || assigning() == Some(member_user_id),
+                                                                            onclick: move |_| {
+                                                                                let Some(team_id) = selected_team() else {
+                                                                                    status.set(Some((false, "Wähle zuerst eine aktive Mannschaft aus.".to_string())));
+                                                                                    return;
+                                                                                };
+
+                                                                                status.set(None);
+                                                                                let success_name = member_username.clone();
+                                                                                spawn(async move {
+                                                                                    assigning.set(Some(member_user_id));
+                                                                                    let result = assign_player_to_team(PlayerAssignmentInput {
+                                                                                        club_id: member_club_id,
+                                                                                        team_id,
+                                                                                        user_id: member_user_id,
+                                                                                    })
+                                                                                    .await;
+                                                                                    assigning.set(None);
+
+                                                                                    match result {
+                                                                                        Ok(()) => {
+                                                                                            status.set(Some((true, format!("{} wurde der aktiven Mannschaft zugewiesen.", success_name))));
+                                                                                            refresh.with_mut(|value| *value += 1);
+                                                                                        }
+                                                                                        Err(error) => {
+                                                                                            status.set(Some((false, format!("Spieler konnte nicht zugewiesen werden: {error}"))));
+                                                                                        }
+                                                                                    }
+                                                                                });
+                                                                            },
+                                                                            {if assigning() == Some(member_user_id) { "Zuweisung..." } else { "Zuweisen" }}
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                        if index + 1 < member_count {
+                                                            ItemSeparator {}
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                    }
+                                }
+                            }
+                        }
+
+                        Card { class: "home-intro-card",
+                            CardHeader {
+                                CardTitle { "3. Training planen" }
+                                CardDescription {
+                                    "Wähle bewusst, ob das Training für die ganze Gruppe oder für die aktive Mannschaft gedacht ist."
+                                }
+                            }
+                            CardContent {
+                                div { class: "section-stack",
+                                    div { class: "detail-card detail-card-muted",
+                                        p { class: "section-label", "Ziel des Trainings" }
+                                        div { class: "section-actions",
+                                            Button {
+                                                variant: if training_scope() == TrainingScopeSelection::WholeGroup {
+                                                    ButtonVariant::Secondary
+                                                } else {
+                                                    ButtonVariant::Outline
+                                                },
+                                                onclick: move |_| training_scope.set(TrainingScopeSelection::WholeGroup),
+                                                "Ganze Gruppe"
+                                            }
+                                            Button {
+                                                variant: if training_scope() == TrainingScopeSelection::ActiveTeam {
+                                                    ButtonVariant::Secondary
+                                                } else {
+                                                    ButtonVariant::Outline
+                                                },
+                                                disabled: active_team_name.is_none(),
+                                                onclick: move |_| training_scope.set(TrainingScopeSelection::ActiveTeam),
+                                                "Aktive Mannschaft"
+                                            }
+                                        }
+                                        p { class: "section-meta",
+                                            {
+                                                match training_scope() {
+                                                    TrainingScopeSelection::WholeGroup => {
+                                                        "Das Training wird für die gesamte Gruppe angelegt.".to_string()
+                                                    }
+                                                    TrainingScopeSelection::ActiveTeam => {
+                                                        format!(
+                                                            "Das Training wird für {} angelegt.",
+                                                            active_team_name.clone().unwrap_or_else(|| "die aktive Mannschaft".to_string())
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
                                     div { class: "form-grid",
                                         div { class: "auth-field",
                                             Label { html_for: "training-title", "Titel" }
@@ -208,24 +389,6 @@ pub fn GroupDetail(group_id: i32) -> Element {
                                             }
                                         }
                                         div { class: "auth-field",
-                                            Label { html_for: "training-team-id", "Mannschaft optional" }
-                                            Input {
-                                                id: "training-team-id",
-                                                value: training_team_id().map(|team_id| team_id.to_string()).unwrap_or_default(),
-                                                placeholder: "Leer lassen für die ganze Gruppe",
-                                                disabled: creating_training(),
-                                                oninput: move |event: FormEvent| {
-                                                    let value = event.value();
-                                                    let value = value.trim().to_string();
-                                                    if value.is_empty() {
-                                                        training_team_id.set(None);
-                                                    } else if let Ok(team_id) = value.parse::<i32>() {
-                                                        training_team_id.set(Some(team_id));
-                                                    }
-                                                },
-                                            }
-                                        }
-                                        div { class: "auth-field",
                                             Label { html_for: "training-description", "Beschreibung" }
                                             Textarea {
                                                 id: "training-description",
@@ -237,20 +400,32 @@ pub fn GroupDetail(group_id: i32) -> Element {
                                             }
                                         }
                                     }
+
                                     div { class: "section-actions",
                                         Button {
                                             variant: ButtonVariant::Secondary,
-                                            disabled: creating_training(),
+                                            disabled: creating_training() || !active_team_ready,
                                             onclick: move |_| {
                                                 if creating_training() {
                                                     return;
                                                 }
 
+                                                let team_id = match training_scope() {
+                                                    TrainingScopeSelection::WholeGroup => None,
+                                                    TrainingScopeSelection::ActiveTeam => {
+                                                        let Some(team_id) = selected_team() else {
+                                                            status.set(Some((false, "Wähle zuerst eine aktive Mannschaft aus.".to_string())));
+                                                            return;
+                                                        };
+                                                        Some(team_id)
+                                                    }
+                                                };
+
                                                 status.set(None);
                                                 let input = CreateTrainingSessionInput {
                                                     club_id: group.club_id,
                                                     group_id,
-                                                    team_id: training_team_id(),
+                                                    team_id,
                                                     title: training_title(),
                                                     description: training_description(),
                                                     location: training_location(),
@@ -270,7 +445,7 @@ pub fn GroupDetail(group_id: i32) -> Element {
                                                             training_location.set(String::new());
                                                             training_start_at.set(String::new());
                                                             training_end_at.set(String::new());
-                                                            training_team_id.set(None);
+                                                            training_scope.set(TrainingScopeSelection::WholeGroup);
                                                             status.set(Some((true, format!("Training '{}' wurde angelegt.", created_training.title))));
                                                             refresh.with_mut(|value| *value += 1);
                                                         }
@@ -284,7 +459,17 @@ pub fn GroupDetail(group_id: i32) -> Element {
                                         }
                                     }
                                 }
+                            }
+                        }
 
+                        Card { class: "home-intro-card",
+                            CardHeader {
+                                CardTitle { "4. Kommende Trainings" }
+                                CardDescription {
+                                    "Behalte die nächsten Termine der Gruppe im Blick."
+                                }
+                            }
+                            CardContent {
                                 match training_state {
                                     None => rsx! { p { class: "auth-help", "Trainings werden geladen..." } },
                                     Some(Err(error)) => rsx! {
@@ -322,97 +507,6 @@ pub fn GroupDetail(group_id: i32) -> Element {
                                             }
                                         }
                                     },
-                                }
-                            }
-                        }
-
-                        Card { class: "home-intro-card",
-                            CardHeader {
-                                CardTitle { "Spieler ohne Mannschaft" }
-                                CardDescription {
-                                    "Ordne nur Spieler zu, die aktuell noch keinem Team zugewiesen sind."
-                                }
-                            }
-                            CardContent {
-                                match members_state {
-                                    None => rsx! { p { class: "auth-help", "Vereinsmitglieder werden geladen..." } },
-                                    Some(Err(error)) => rsx! {
-                                        div { class: "auth-status auth-status--error",
-                                            p { class: "auth-help", "Vereinsmitglieder konnten nicht geladen werden: {error}" }
-                                        }
-                                    },
-                                    Some(Ok(members)) if members.is_empty() => rsx! {
-                                        p { class: "auth-help", "Aktuell warten keine Spieler auf eine Mannschaftszuteilung." }
-                                    },
-                                    Some(Ok(members)) => {
-                                        let member_count = members.len();
-
-                                        rsx! {
-                                            ItemGroup {
-                                                for (index, member) in members.into_iter().enumerate() {
-                                                    {
-                                                        let member_user_id = member.user_id;
-                                                        let member_club_id = member.club_id;
-                                                        let member_username = member.username.clone();
-
-                                                        rsx! {
-                                                            Item {
-                                                                ItemContent {
-                                                                    ItemTitle { "{member.username}" }
-                                                                    ItemDescription { "Mitglied in {member.club_name}" }
-                                                                }
-                                                                ItemActions {
-                                                                    Button {
-                                                                        variant: ButtonVariant::Outline,
-                                                                        disabled: selected_team().is_none() || assigning() == Some(member_user_id),
-                                                                        onclick: move |_| {
-                                                                            let Some(team_id) = selected_team() else {
-                                                                                status.set(Some((false, "Wähle zuerst eine Mannschaft aus.".to_string())));
-                                                                                return;
-                                                                            };
-
-                                                                            status.set(None);
-                                                                            let success_name = member_username.clone();
-                                                                            spawn(async move {
-                                                                                assigning.set(Some(member_user_id));
-                                                                                let result = assign_player_to_team(PlayerAssignmentInput {
-                                                                                    club_id: member_club_id,
-                                                                                    team_id,
-                                                                                    user_id: member_user_id,
-                                                                                })
-                                                                                .await;
-                                                                                assigning.set(None);
-
-                                                                                match result {
-                                                                                    Ok(()) => {
-                                                                                        status.set(Some((true, format!("{} wurde einer Mannschaft zugewiesen.", success_name))));
-                                                                                        refresh.with_mut(|value| *value += 1);
-                                                                                    }
-                                                                                    Err(error) => {
-                                                                                        status.set(Some((false, format!("Spieler konnte nicht zugewiesen werden: {error}"))));
-                                                                                    }
-                                                                                }
-                                                                            });
-                                                                        },
-                                                                        {if assigning() == Some(member_user_id) { "Zuweisung..." } else { "Zuweisen" }}
-                                                                    }
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                    if index + 1 < member_count {
-                                                        ItemSeparator {}
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    },
-                                }
-                            }
-
-                            if let Some((success, message)) = status() {
-                                div { class: if success { "auth-status auth-status--success" } else { "auth-status auth-status--error" },
-                                    p { class: "auth-help", "{message}" }
                                 }
                             }
                         }
