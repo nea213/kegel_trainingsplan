@@ -68,11 +68,7 @@ pub fn Navbar() -> Element {
                 header {
                     id: "navbar",
                     class: "navbar-shell",
-                    div { class: "nav-brand",
-                        div { class: "nav-brand__badge", "Kegel Trainingsplan" }
-                        h1 { class: "nav-title", "Kegel Trainingsplan" }
-                        p { class: "nav-subtitle", "Training, Gruppen und Vereine an einem Ort." }
-                    }
+                    div { class: "nav-spacer", aria_hidden: "true" }
                     div { class: "nav-main",
                         UiNavbar {
                             aria_label: "Hauptnavigation",
@@ -149,6 +145,7 @@ fn UserMenu(user: PublicUser) -> Element {
             }
             DropdownMenuContent {
                 class: "nav-user-menu",
+                style: "left: auto; right: 0;",
                 div { class: "nav-user-menu-header",
                     span { class: "nav-user-menu-title", "{header_username}" }
                     span { class: "nav-user-menu-subtitle", "Persönliches Erscheinungsbild" }

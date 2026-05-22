@@ -10,6 +10,7 @@ html {
 }
 
 body {
+    --page-gutter: 20px;
     background: transparent;
     color: var(--foreground);
     font-family: var(--font-sans);
@@ -986,6 +987,7 @@ a {
 
 @media (max-width: 640px) {
     body {
+        --page-gutter: 16px;
         padding: 0 16px 16px;
     }
 
