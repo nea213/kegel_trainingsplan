@@ -1,7 +1,7 @@
 .dx-card {
   display: flex;
   flex-direction: column;
-  padding: 1.5rem 0;
+  padding: 1.5rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
   background-color: var(--card);
@@ -14,7 +14,7 @@
 .dx-card-header {
   display: grid;
   align-items: start;
-  padding: 0 1.5rem;
+  padding: 0;
   gap: 0.5rem;
   grid-auto-rows: min-content;
   grid-template-rows: auto auto;
@@ -43,11 +43,11 @@
 }
 
 .dx-card-content {
-  padding: 0 1.5rem;
+  padding: 0;
 }
 
 .dx-card-footer {
   display: flex;
   align-items: center;
-  padding: 0 1.5rem;
+  padding: 0;
 }

@@ -1,7 +1,7 @@
 .auth-panel {
   width: min(100%, 980px);
   display: grid;
-  gap: 18px;
+  gap: 24px;
 }
 
 .auth-panel--account {
@@ -79,23 +79,23 @@
 
 .auth-form {
   display: grid;
-  gap: 16px;
+  gap: 22px;
 }
 
 .auth-field {
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 
 .auth-actions {
   display: flex;
-  gap: 12px;
+  gap: 16px;
   flex-wrap: wrap;
 }
 
 .auth-actions--stack {
   display: grid;
-  gap: 12px;
+  gap: 16px;
 }
 
 .auth-actions--stack .dx-button {

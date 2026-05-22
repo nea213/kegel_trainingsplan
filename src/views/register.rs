@@ -19,28 +19,17 @@ pub fn Register(return_to: Option<String>) -> Element {
         }
     });
 
-    match auth_state {
-        None => rsx! {
-            section { class: "auth-page",
-                div { class: "auth-page-shell",
-                    div {
-                        id: "auth-panel",
-                        div { class: "auth-status",
-                            p { class: "auth-help", "Registrierung wird vorbereitet..." }
-                        }
-                    }
+    if matches!(auth_state, Some(Some(_))) {
+        return rsx! {};
+    }
+
+    rsx! {
+        section { class: "auth-page",
+            div { class: "auth-page-shell",
+                RegisterPanel {
+                    return_to: sanitize_return_to(return_to),
                 }
             }
-        },
-        Some(Some(_)) => rsx! {},
-        Some(None) => rsx! {
-            section { class: "auth-page",
-                div { class: "auth-page-shell",
-                    RegisterPanel {
-                        return_to: sanitize_return_to(return_to),
-                    }
-                }
-            }
-        },
+        }
     }
 }

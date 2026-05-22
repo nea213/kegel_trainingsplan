@@ -521,17 +521,6 @@ Alle UI-Texte bleiben auf Deutsch.
 
 ## Konkrete Refactor-Phasen
 
-## Phase 1: Struktur beruhigen
-
-Ziel: Sofort mehr Ordnung ohne tiefen visuellen Neuaufbau.
-
-Umfang:
-
-- Navbar reduzieren
-- `GroupDetail` von manueller `team_id` befreien
-- `ClubDetail` mit Collapsible- oder Accordion-Bereichen aufraeumen
-- Formulare nur bei Bedarf anzeigen
-
 ## Phase 2: Seitenlayout modernisieren
 
 Ziel: Ein konsistentes modernes Layoutsystem einfuehren.

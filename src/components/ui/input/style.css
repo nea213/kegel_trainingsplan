@@ -6,13 +6,14 @@
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 12px;
+  min-height: 3rem;
+  padding: 0.7rem 0.9rem;
   border: 1px solid var(--input);
   border-radius: var(--radius-md);
   background-color: var(--background);
   box-shadow: var(--shadow-2xs);
   color: var(--foreground);
-  gap: 0.25rem;
+  gap: 0.3rem;
   outline: none;
   transition: background-color 100ms ease-out, border-color 100ms ease-out, box-shadow 100ms ease-out;
 }

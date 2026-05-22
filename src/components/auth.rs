@@ -14,8 +14,6 @@ use crate::theme::ThemeContext;
 use crate::Route;
 use dioxus::prelude::*;
 
-const AUTH_CSS: Asset = asset!("/assets/styling/auth.css");
-
 pub(crate) fn sanitize_return_to(return_to: Option<String>) -> Option<String> {
     return_to.and_then(|value| {
         let trimmed = value.trim();
@@ -63,11 +61,9 @@ pub fn AccountPanel() -> Element {
 
     match auth_state {
         None => rsx! {
-            document::Link { rel: "stylesheet", href: AUTH_CSS }
             div { id: "auth-panel", class: "auth-panel auth-panel--account" }
         },
         Some(None) => rsx! {
-            document::Link { rel: "stylesheet", href: AUTH_CSS }
             div { id: "auth-panel", class: "auth-panel auth-panel--account" }
         },
         Some(Some(user)) => {
@@ -80,8 +76,6 @@ pub fn AccountPanel() -> Element {
                 .to_uppercase();
 
             rsx! {
-                document::Link { rel: "stylesheet", href: AUTH_CSS }
-
                 div {
                     id: "auth-panel",
                     class: "auth-panel auth-panel--account",
@@ -167,8 +161,6 @@ pub fn LoginPanel(return_to: Option<String>) -> Element {
     let mut login_password = use_signal(String::new);
 
     rsx! {
-        document::Link { rel: "stylesheet", href: AUTH_CSS }
-
         div {
             id: "auth-panel",
             class: "auth-panel auth-panel--public",
@@ -233,7 +225,7 @@ pub fn LoginPanel(return_to: Option<String>) -> Element {
                                         if let Some(path) = target {
                                             let _ = nav.replace(path);
                                         } else {
-                                            let _ = nav.replace(Route::Home {});
+                                            let _ = nav.replace(Route::Dashboard {});
                                         }
                                     }
                                     Err(error) => {
@@ -281,8 +273,6 @@ pub fn RegisterPanel(return_to: Option<String>) -> Element {
     let mut register_password = use_signal(String::new);
 
     rsx! {
-        document::Link { rel: "stylesheet", href: AUTH_CSS }
-
         div {
             id: "auth-panel",
             class: "auth-panel auth-panel--public",
@@ -405,7 +395,7 @@ pub fn RegisterPanel(return_to: Option<String>) -> Element {
                                         if let Some(path) = target {
                                             let _ = nav.replace(path);
                                         } else {
-                                            let _ = nav.replace(Route::Home {});
+                                            let _ = nav.replace(Route::Dashboard {});
                                         }
                                     }
                                     Err(error) => {

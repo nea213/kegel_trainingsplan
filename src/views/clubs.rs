@@ -1,12 +1,14 @@
+use crate::auth::current_user;
 use crate::clubs::{create_club, list_clubs, ClubSummary, CreateClubInput};
 use crate::components::ui::button::{Button, ButtonVariant};
-use crate::components::ui::card::{Card, CardContent, CardDescription, CardHeader, CardTitle};
 use crate::components::ui::input::Input;
 use crate::components::ui::item::{
-    Item, ItemActions, ItemContent, ItemGroup, ItemSeparator, ItemTitle,
+    Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemSeparator, ItemTitle,
 };
 use crate::components::ui::label::Label;
-use crate::auth::current_user;
+use crate::components::{
+    EmptyStatePanel, LoadingPanel, PageHeader, SectionPanel, StatusBanner, StatusBannerTone,
+};
 use crate::Route;
 use dioxus::prelude::*;
 
@@ -28,37 +30,65 @@ pub fn Clubs() -> Element {
     match user_state {
         None => rsx! {
             section { class: "page-section",
-                div { class: "auth-status",
-                    p { class: "auth-help", "Berechtigungen werden geladen..." }
+                div { class: "page-stack",
+                    LoadingPanel { title: "Vereine".to_string(), lines: 4 }
                 }
             }
         },
         Some(None) => rsx! {},
         Some(Some(user)) if !user.is_system_admin => rsx! {
             section { class: "page-section",
-                Card { class: "home-intro-card",
-                    CardHeader {
-                        CardTitle { "Vereinsverwaltung" }
-                        CardDescription {
-                            "Nur System-Admins dürfen Vereine, Gruppen und Mannschaften verwalten."
-                        }
+                div { class: "page-stack",
+                    PageHeader {
+                        title: "Vereinsverwaltung".to_string(),
+                        description: "Nur System-Admins dürfen Vereine, Gruppen und Mannschaften verwalten.".to_string(),
+                        eyebrow: Some("Administration".to_string()),
+                    }
+                    StatusBanner {
+                        tone: StatusBannerTone::Info,
+                        title: Some("Kein Zugriff".to_string()),
+                        message: "Melde dich mit einem System-Admin-Konto an, um Vereine zu pflegen.".to_string(),
                     }
                 }
             }
         },
         Some(Some(_)) => rsx! {
             section { class: "page-section",
-                Card { class: "home-intro-card",
-                    CardHeader {
-                        CardTitle { "Vereine" }
-                        CardDescription {
-                            "Lege Vereine an und verwalte anschließend deren Gruppen und Mannschaften im Detailbereich."
+                div { class: "page-stack page-stack--spacious",
+                    PageHeader {
+                        title: "Vereine".to_string(),
+                        description: "Lege Vereine an und öffne anschließend deren Detailbereiche für Gruppen und Mannschaften.".to_string(),
+                        eyebrow: Some("Administration".to_string()),
+                        actions: Some(rsx! {
+                            Button {
+                                variant: ButtonVariant::Secondary,
+                                onclick: move |_| {
+                                    let _ = document::eval(
+                                        r#"document.getElementById("club-name")?.focus();"#
+                                    );
+                                },
+                                "Verein anlegen"
+                            }
+                        }),
+                    }
+
+                    if let Some((success, message)) = status() {
+                        StatusBanner {
+                            tone: if success {
+                                StatusBannerTone::Success
+                            } else {
+                                StatusBannerTone::Error
+                            },
+                            message,
                         }
                     }
-                    CardContent {
+
+                    SectionPanel {
+                        title: "Neuen Verein erfassen".to_string(),
+                        description: "Der Verein erscheint direkt danach in der Übersicht und kann sofort weiter gepflegt werden.".to_string(),
                         div { class: "section-stack",
                             div { class: "auth-field",
-                                Label { html_for: "club-name", "Neuer Verein" }
+                                Label { html_for: "club-name", "Vereinsname" }
                                 Input {
                                     id: "club-name",
                                     value: club_name(),
@@ -67,76 +97,86 @@ pub fn Clubs() -> Element {
                                     oninput: move |event: FormEvent| club_name.set(event.value()),
                                 }
                             }
-                            Button {
-                                variant: ButtonVariant::Secondary,
-                                disabled: busy(),
-                                onclick: move |_| {
-                                    if busy() {
-                                        return;
-                                    }
-
-                                    status.set(None);
-                                    let name = club_name();
-                                    spawn(async move {
-                                        busy.set(true);
-                                        let result = create_club(CreateClubInput { name }).await;
-                                        busy.set(false);
-
-                                        match result {
-                                            Ok(created_club) => {
-                                                club_name.set(String::new());
-                                                status.set(Some((true, format!("Verein '{}' wurde angelegt.", created_club.name))));
-                                                refresh.with_mut(|value| *value += 1);
-                                            }
-                                            Err(error) => {
-                                                status.set(Some((false, format!("Verein konnte nicht angelegt werden: {error}"))));
-                                            }
+                            div { class: "section-actions",
+                                Button {
+                                    variant: ButtonVariant::Secondary,
+                                    disabled: busy(),
+                                    onclick: move |_| {
+                                        if busy() {
+                                            return;
                                         }
-                                    });
-                                },
-                                {if busy() { "Speichert..." } else { "Verein anlegen" }}
+
+                                        status.set(None);
+                                        let name = club_name();
+                                        spawn(async move {
+                                            busy.set(true);
+                                            let result = create_club(CreateClubInput { name }).await;
+                                            busy.set(false);
+
+                                            match result {
+                                                Ok(created_club) => {
+                                                    club_name.set(String::new());
+                                                    status.set(Some((
+                                                        true,
+                                                        format!("Verein '{}' wurde angelegt.", created_club.name),
+                                                    )));
+                                                    refresh.with_mut(|value| *value += 1);
+                                                }
+                                                Err(error) => {
+                                                    status.set(Some((
+                                                        false,
+                                                        format!("Verein konnte nicht angelegt werden: {error}"),
+                                                    )));
+                                                }
+                                            }
+                                        });
+                                    },
+                                    {if busy() { "Speichert..." } else { "Verein anlegen" }}
+                                }
                             }
                         }
                     }
-                }
-            }
 
-            section { class: "page-section",
-                Card { class: "home-intro-card",
-                    CardHeader {
-                        CardTitle { "Bestehende Vereine" }
-                        CardDescription {
-                            "Wähle einen Verein aus, um Gruppen und Mannschaften zu pflegen."
-                        }
-                    }
-                    CardContent {
-                        match clubs_state {
-                            None => rsx! {
-                                p { class: "auth-help", "Vereinsliste wird geladen..." }
-                            },
-                            Some(Err(error)) => rsx! {
-                                div { class: "auth-status auth-status--error",
-                                    p { class: "auth-help", "Vereine konnten nicht geladen werden: {error}" }
+                    match clubs_state {
+                        None => rsx! {
+                            LoadingPanel {
+                                title: "Bestehende Vereine".to_string(),
+                                lines: 5,
+                            }
+                        },
+                        Some(Err(error)) => rsx! {
+                            SectionPanel {
+                                title: "Bestehende Vereine".to_string(),
+                                description: "Wähle einen Verein aus, um Gruppen und Mannschaften zu pflegen.".to_string(),
+                                StatusBanner {
+                                    tone: StatusBannerTone::Error,
+                                    title: Some("Vereine konnten nicht geladen werden".to_string()),
+                                    message: error.to_string(),
                                 }
-                            },
-                            Some(Ok(clubs)) if clubs.is_empty() => rsx! {
-                                p { class: "auth-help", "Es wurde noch kein Verein angelegt." }
-                            },
-                            Some(Ok(clubs)) => rsx! {
+                            }
+                        },
+                        Some(Ok(clubs)) if clubs.is_empty() => rsx! {
+                            SectionPanel {
+                                title: "Bestehende Vereine".to_string(),
+                                description: "Wähle einen Verein aus, um Gruppen und Mannschaften zu pflegen.".to_string(),
+                                EmptyStatePanel {
+                                    title: "Noch kein Verein vorhanden".to_string(),
+                                    message: "Lege oben den ersten Verein an, um mit der Strukturierung zu beginnen.".to_string(),
+                                }
+                            }
+                        },
+                        Some(Ok(clubs)) => rsx! {
+                            SectionPanel {
+                                title: "Bestehende Vereine".to_string(),
+                                description: "Wähle einen Verein aus, um Gruppen und Mannschaften zu pflegen.".to_string(),
                                 ClubList {
                                     clubs,
                                     on_open: move |club_id| {
                                         let _ = nav.push(Route::ClubDetail { club_id });
                                     },
                                 }
-                            },
-                        }
-
-                        if let Some((success, message)) = status() {
-                            div { class: if success { "auth-status auth-status--success" } else { "auth-status auth-status--error" },
-                                p { class: "auth-help", "{message}" }
                             }
-                        }
+                        },
                     }
                 }
             }
@@ -152,8 +192,10 @@ fn ClubList(clubs: Vec<ClubSummary>, on_open: EventHandler<i32>) -> Element {
         ItemGroup {
             for (index, club) in clubs.into_iter().enumerate() {
                 Item {
+                    class: "content-list-item",
                     ItemContent {
                         ItemTitle { "{club.name}" }
+                        ItemDescription { "Öffne den Verein für Gruppen, Einladungen und Mannschaften." }
                     }
                     ItemActions {
                         Button {

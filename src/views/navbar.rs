@@ -12,8 +12,6 @@ use crate::{
 };
 use dioxus::prelude::*;
 
-const NAVBAR_CSS: Asset = asset!("/assets/styling/navbar.css");
-
 #[component]
 pub fn Navbar() -> Element {
     let auth_refresh = use_context::<Signal<u64>>();
@@ -46,8 +44,6 @@ pub fn Navbar() -> Element {
     });
 
     rsx! {
-        document::Link { rel: "stylesheet", href: NAVBAR_CSS }
-
         match user_state {
             None => rsx! {
                 header {
