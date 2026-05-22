@@ -56,6 +56,7 @@ fn BadgeElement(props: BadgeProps) -> Element {
     rsx! {
         span {
             class: Styles::dx_badge,
+            "data-slot": "badge",
             "data-style": props.variant.class(),
             ..props.attributes,
             {props.children}

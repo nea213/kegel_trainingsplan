@@ -8,6 +8,7 @@ pub fn Label(props: LabelProps) -> Element {
     rsx! {
         label::Label {
             class: Styles::dx_label,
+            "data-slot": "label",
             html_for: props.html_for,
             attributes: props.attributes,
             {props.children}

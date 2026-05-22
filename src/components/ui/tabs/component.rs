@@ -92,7 +92,8 @@ pub fn Tabs(props: TabsProps) -> Element {
 #[component]
 pub fn TabList(props: TabListProps) -> Element {
     let base = attributes!(div {
-        class: Styles::dx_tabs_list
+        class: Styles::dx_tabs_list,
+        "data-slot": "tabs-list",
     });
     let merged = merge_attributes(vec![base, props.attributes]);
 
@@ -108,7 +109,8 @@ pub fn TabTrigger(props: TabTriggerProps) -> Element {
             "{} {}",
             Styles::dx_tabs_trigger,
             props.class.unwrap_or_default()
-        )
+        ),
+        "data-slot": "tabs-trigger",
     });
     let merged = merge_attributes(vec![base, props.attributes]);
 
@@ -133,7 +135,8 @@ pub fn TabContent(props: TabContentProps) -> Element {
             props.class.unwrap_or_default(),
             Styles::dx_tabs_content,
             Styles::dx_tabs_content_themed
-        )
+        ),
+        "data-slot": "tabs-content",
     });
     let merged = merge_attributes(vec![base, props.attributes]);
 

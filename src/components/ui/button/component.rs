@@ -74,6 +74,7 @@ pub fn Button(
 ) -> Element {
     let base = attributes!(button {
         class: Styles::dx_button,
+        "data-slot": "button",
         "data-style": variant.class(),
         "data-size": size.class(),
     });

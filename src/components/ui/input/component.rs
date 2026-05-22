@@ -31,6 +31,7 @@ pub fn Input(
     rsx! {
         input {
             class: Styles::dx_input,
+            "data-slot": "input",
             oninput: move |e| _ = oninput.map(|callback| callback(e)),
             onchange: move |e| _ = onchange.map(|callback| callback(e)),
             oninvalid: move |e| _ = oninvalid.map(|callback| callback(e)),
