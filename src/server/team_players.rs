@@ -1,8 +1,8 @@
 use crate::{
     server::{
-        auth::{normalize_username, now_timestamp},
+        auth::now_timestamp,
         db,
-        entities::{team, team_player, user},
+        entities::{club_membership, team, team_player, user},
         permissions,
     },
     team_players::{AssignTeamPlayerInput, AssignedPlayer},
@@ -38,28 +38,33 @@ pub async fn list(team_id: i32) -> Result<Vec<AssignedPlayer>, String> {
 
 pub async fn assign(input: AssignTeamPlayerInput) -> Result<AssignedPlayer, String> {
     permissions::require_system_admin().await?;
-    let username = normalize_username(&input.username)?;
     let db = db::connection().await.map_err(db_error)?;
 
-    let team_exists = team::Entity::find_by_id(input.team_id)
+    let team_model = team::Entity::find_by_id(input.team_id)
+        .one(db)
+        .await
+        .map_err(db_error)?
+        .ok_or_else(|| "Die Zielmannschaft wurde nicht gefunden.".to_string())?;
+
+    let found_user = user::Entity::find_by_id(input.user_id)
+        .one(db)
+        .await
+        .map_err(db_error)?
+        .ok_or_else(|| "Die ausgewählte Person wurde nicht gefunden.".to_string())?;
+
+    let is_club_member = club_membership::Entity::find()
+        .filter(club_membership::Column::ClubId.eq(team_model.club_id))
+        .filter(club_membership::Column::UserId.eq(found_user.id))
         .one(db)
         .await
         .map_err(db_error)?
         .is_some();
 
-    if !team_exists {
-        return Err("Die Zielmannschaft wurde nicht gefunden.".to_string());
+    if !is_club_member {
+        return Err("Die ausgewählte Person ist kein Mitglied dieses Vereins.".to_string());
     }
 
-    let found_user = user::Entity::find()
-        .filter(user::Column::Username.eq(username))
-        .one(db)
-        .await
-        .map_err(db_error)?
-        .ok_or_else(|| "Der Benutzer wurde nicht gefunden.".to_string())?;
-
     let already_assigned = team_player::Entity::find()
-        .filter(team_player::Column::TeamId.eq(input.team_id))
         .filter(team_player::Column::UserId.eq(found_user.id))
         .one(db)
         .await
@@ -67,7 +72,7 @@ pub async fn assign(input: AssignTeamPlayerInput) -> Result<AssignedPlayer, Stri
         .is_some();
 
     if already_assigned {
-        return Err("Dieser Benutzer ist bereits Spieler dieser Mannschaft.".to_string());
+        return Err("Diese Person ist bereits einer Mannschaft zugewiesen.".to_string());
     }
 
     team_player::ActiveModel {

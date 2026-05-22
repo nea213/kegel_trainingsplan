@@ -1,12 +1,17 @@
 use crate::{
-    clubs::{ClubDetail, ClubGroupWithTeams, ClubSummary, CreateClubInput, TeamWithPlayers},
+    clubs::{
+        ClubDetail, ClubGroupWithTeams, ClubMemberOption, ClubSummary, CreateClubInput,
+        TeamWithPlayers,
+    },
     group_trainers::AssignedTrainer,
     groups::GroupSummary,
     invitations::InvitationSummary,
     server::{
         auth::now_timestamp,
         db,
-        entities::{club, club_group, group_trainer, invitation, team, team_player, user},
+        entities::{
+            club, club_group, club_membership, group_trainer, invitation, team, team_player, user,
+        },
         permissions,
     },
     team_players::AssignedPlayer,
@@ -85,6 +90,13 @@ pub async fn detail(club_id: i32) -> Result<ClubDetail, String> {
         .await
         .map_err(db_error)?;
 
+    let club_memberships = club_membership::Entity::find()
+        .filter(club_membership::Column::ClubId.eq(club_id))
+        .order_by_asc(club_membership::Column::CreatedAt)
+        .all(db)
+        .await
+        .map_err(db_error)?;
+
     let group_ids = groups.iter().map(|group| group.id).collect::<Vec<_>>();
     let team_ids = teams.iter().map(|team| team.id).collect::<Vec<_>>();
 
@@ -110,10 +122,16 @@ pub async fn detail(club_id: i32) -> Result<ClubDetail, String> {
             .map_err(db_error)?
     };
 
+    let assigned_user_ids = team_players
+        .iter()
+        .map(|membership| membership.user_id)
+        .collect::<std::collections::BTreeSet<_>>();
+
     let user_ids = group_trainers
         .iter()
         .map(|membership| membership.user_id)
         .chain(team_players.iter().map(|membership| membership.user_id))
+        .chain(club_memberships.iter().map(|membership| membership.user_id))
         .collect::<Vec<_>>();
 
     let users = if user_ids.is_empty() {
@@ -186,9 +204,22 @@ pub async fn detail(club_id: i32) -> Result<ClubDetail, String> {
         })
         .collect();
 
+    let club_members = club_memberships
+        .into_iter()
+        .filter_map(|membership| {
+            let found_user = users_by_id.get(&membership.user_id)?;
+            Some(ClubMemberOption {
+                user_id: found_user.id,
+                username: found_user.username.clone(),
+                is_assigned_to_team: assigned_user_ids.contains(&found_user.id),
+            })
+        })
+        .collect();
+
     Ok(ClubDetail {
         club: club_summary(club_model),
         groups,
+        club_members,
     })
 }
 

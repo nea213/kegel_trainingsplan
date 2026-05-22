@@ -1,9 +1,9 @@
 use crate::{
     group_trainers::{AssignGroupTrainerInput, AssignedTrainer},
     server::{
-        auth::{normalize_username, now_timestamp},
+        auth::now_timestamp,
         db,
-        entities::{club_group, group_trainer, user},
+        entities::{club_group, club_membership, group_trainer, user},
         permissions,
     },
 };
@@ -38,25 +38,31 @@ pub async fn list(group_id: i32) -> Result<Vec<AssignedTrainer>, String> {
 
 pub async fn assign(input: AssignGroupTrainerInput) -> Result<AssignedTrainer, String> {
     permissions::require_system_admin().await?;
-    let username = normalize_username(&input.username)?;
     let db = db::connection().await.map_err(db_error)?;
 
-    let group_exists = club_group::Entity::find_by_id(input.group_id)
+    let group = club_group::Entity::find_by_id(input.group_id)
+        .one(db)
+        .await
+        .map_err(db_error)?
+        .ok_or_else(|| "Die Zielgruppe wurde nicht gefunden.".to_string())?;
+
+    let found_user = user::Entity::find_by_id(input.user_id)
+        .one(db)
+        .await
+        .map_err(db_error)?
+        .ok_or_else(|| "Die ausgewählte Person wurde nicht gefunden.".to_string())?;
+
+    let is_club_member = club_membership::Entity::find()
+        .filter(club_membership::Column::ClubId.eq(group.club_id))
+        .filter(club_membership::Column::UserId.eq(found_user.id))
         .one(db)
         .await
         .map_err(db_error)?
         .is_some();
 
-    if !group_exists {
-        return Err("Die Zielgruppe wurde nicht gefunden.".to_string());
+    if !is_club_member {
+        return Err("Die ausgewählte Person ist kein Mitglied dieses Vereins.".to_string());
     }
-
-    let found_user = user::Entity::find()
-        .filter(user::Column::Username.eq(username))
-        .one(db)
-        .await
-        .map_err(db_error)?
-        .ok_or_else(|| "Der Benutzer wurde nicht gefunden.".to_string())?;
 
     let already_assigned = group_trainer::Entity::find()
         .filter(group_trainer::Column::GroupId.eq(input.group_id))

@@ -10,7 +10,7 @@ pub struct AssignedPlayer {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AssignTeamPlayerInput {
     pub team_id: i32,
-    pub username: String,
+    pub user_id: i32,
 }
 
 #[post("/api/team-players/list")]

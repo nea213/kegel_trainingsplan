@@ -24,9 +24,17 @@ pub struct TeamWithPlayers {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ClubMemberOption {
+    pub user_id: i32,
+    pub username: String,
+    pub is_assigned_to_team: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ClubDetail {
     pub club: ClubSummary,
     pub groups: Vec<ClubGroupWithTeams>,
+    pub club_members: Vec<ClubMemberOption>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

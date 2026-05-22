@@ -1,5 +1,6 @@
 use dioxus::prelude::*;
 
+use components::ui::toast::ToastProvider;
 use theme::{ThemeContext, ThemeMode};
 use views::{ClubDetail, Clubs, Dashboard, GroupDetail, Home, Login, Navbar, Register};
 
@@ -96,6 +97,8 @@ fn App() -> Element {
         document::Stylesheet { href: AUTH_CSS }
         document::Stylesheet { href: NAVBAR_CSS }
         document::Stylesheet { href: TAILWIND_CSS }
-        Router::<Route> {}
+        ToastProvider {
+            Router::<Route> {}
+        }
     }
 }

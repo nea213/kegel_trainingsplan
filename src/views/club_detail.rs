@@ -1,9 +1,12 @@
 use crate::auth::current_user;
-use crate::clubs::{get_club_detail, ClubDetail as ClubDetailData, ClubGroupWithTeams};
+use crate::clubs::{
+    get_club_detail, ClubDetail as ClubDetailData, ClubGroupWithTeams, ClubMemberOption,
+};
 use crate::components::ui::accordion::{
     Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 };
 use crate::components::ui::button::{Button, ButtonVariant};
+use crate::components::ui::combobox::{Combobox, ComboboxEmpty, ComboboxOption};
 use crate::components::ui::dropdown_menu::{
     DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 };
@@ -14,8 +17,9 @@ use crate::components::ui::sheet::{
 };
 use crate::components::ui::tabs::{TabContent, TabList, TabTrigger, Tabs, TabsVariant};
 use crate::components::{
-    EmptyStatePanel, LoadingPanel, MetricCard, PageHeader, SectionPanel, StatusBanner,
-    StatusBannerTone,
+    copy_to_clipboard, show_error_toast, show_success_toast, ConfirmActionDialog,
+    CopyableCodeCard, EmptyStatePanel, LoadingPanel, MetricCard, PageHeader, SectionPanel,
+    StatusBanner, StatusBannerTone,
 };
 use crate::group_trainers::{assign_group_trainer, remove_group_trainer, AssignGroupTrainerInput};
 use crate::groups::{create_group, CreateGroupInput};
@@ -26,6 +30,7 @@ use crate::team_players::{assign_team_player, remove_team_player, AssignTeamPlay
 use crate::teams::{create_team, CreateTeamInput};
 use crate::training::format_timestamp_label;
 use dioxus::prelude::*;
+use dioxus_primitives::toast::use_toast;
 use std::collections::HashMap;
 
 #[component]
@@ -37,6 +42,7 @@ pub fn ClubDetail(club_id: i32) -> Element {
         let _ = refresh();
         async move { get_club_detail(club_id).await }
     })?;
+    let toast = use_toast();
     let user_state = user_resource.read().as_ref().cloned();
     let detail_state = detail_resource.read().as_ref().cloned();
     let mut active_tab = use_signal(|| Some("overview".to_string()));
@@ -44,9 +50,9 @@ pub fn ClubDetail(club_id: i32) -> Element {
     let mut group_sort_order = use_signal(|| "0".to_string());
     let invitation_days = use_signal(|| "7".to_string());
     let mut latest_invitation = use_signal(|| None::<CreatedInvitation>);
-    let mut trainer_names = use_signal(HashMap::<i32, String>::new);
+    let mut trainer_selections = use_signal(HashMap::<i32, i32>::new);
     let mut new_team_names = use_signal(HashMap::<i32, String>::new);
-    let mut player_names = use_signal(HashMap::<i32, String>::new);
+    let mut player_selections = use_signal(HashMap::<i32, i32>::new);
     let mut team_sort_orders = use_signal(HashMap::<i32, String>::new);
     let mut busy_group = use_signal(|| false);
     let mut busy_invitation = use_signal(|| None::<Option<i32>>);
@@ -55,7 +61,9 @@ pub fn ClubDetail(club_id: i32) -> Element {
     let mut revoking_invitation = use_signal(|| None::<i32>);
     let mut removing_trainer = use_signal(|| None::<(i32, i32)>);
     let mut removing_player = use_signal(|| None::<(i32, i32)>);
-    let mut status = use_signal(|| None::<(bool, String)>);
+    let mut confirm_revoke_invitation = use_signal(|| None::<i32>);
+    let mut confirm_remove_trainer = use_signal(|| None::<(i32, i32, String)>);
+    let mut confirm_remove_player = use_signal(|| None::<(i32, i32, String)>);
     let mut club_invitation_sheet_open = use_signal(|| false);
     let mut group_sheet_open = use_signal(|| false);
 
@@ -110,6 +118,7 @@ pub fn ClubDetail(club_id: i32) -> Element {
                     }
                 },
                 Some(Ok(detail)) => {
+                    let club_members = detail.club_members.clone();
                     let group_count = detail.groups.len();
                     let trainer_count =
                         detail.groups.iter().map(|section| section.trainers.len()).sum::<usize>();
@@ -134,17 +143,6 @@ pub fn ClubDetail(club_id: i32) -> Element {
                                             on_open_club_invitation: move |_| club_invitation_sheet_open.set(true),
                                         }
                                     }),
-                                }
-
-                                if let Some((success, message)) = status() {
-                                    StatusBanner {
-                                        tone: if success {
-                                            StatusBannerTone::Success
-                                        } else {
-                                            StatusBannerTone::Error
-                                        },
-                                        message,
-                                    }
                                 }
 
                                 div { class: "metrics-grid",
@@ -215,14 +213,17 @@ pub fn ClubDetail(club_id: i32) -> Element {
                                                                 return;
                                                             }
 
-                                                            status.set(None);
                                                             let sort_order = parse_sort_order(&group_sort_order());
                                                             let name = group_name();
                                                             spawn(async move {
                                                                 let sort_order = match sort_order {
                                                                     Ok(sort_order) => sort_order,
                                                                     Err(error) => {
-                                                                        status.set(Some((false, format!("Gruppe konnte nicht angelegt werden: {error}"))));
+                                                                        show_error_toast(
+                                                                            toast,
+                                                                            "Gruppe konnte nicht angelegt werden",
+                                                                            error,
+                                                                        );
                                                                         return;
                                                                     }
                                                                 };
@@ -240,11 +241,22 @@ pub fn ClubDetail(club_id: i32) -> Element {
                                                                     Ok(created_group) => {
                                                                         group_name.set(String::new());
                                                                         group_sort_order.set("0".to_string());
-                                                                        status.set(Some((true, format!("Gruppe '{}' wurde angelegt.", created_group.name))));
+                                                                        show_success_toast(
+                                                                            toast,
+                                                                            "Gruppe angelegt",
+                                                                            format!(
+                                                                                "Die Gruppe '{}' ist jetzt verfügbar.",
+                                                                                created_group.name
+                                                                            ),
+                                                                        );
                                                                         refresh.with_mut(|value| *value += 1);
                                                                     }
                                                                     Err(error) => {
-                                                                        status.set(Some((false, format!("Gruppe konnte nicht angelegt werden: {error}"))));
+                                                                        show_error_toast(
+                                                                            toast,
+                                                                            "Gruppe konnte nicht angelegt werden",
+                                                                            error.to_string(),
+                                                                        );
                                                                     }
                                                                 }
                                                             });
@@ -272,9 +284,10 @@ pub fn ClubDetail(club_id: i32) -> Element {
                                                 rsx! {
                                                     GroupAccordion {
                                                         detail,
-                                                        trainer_names,
+                                                        club_members,
+                                                        trainer_selections,
                                                         new_team_names,
-                                                        player_names,
+                                                        player_selections,
                                                         team_sort_orders,
                                                         invitation_days,
                                                         latest_invitation,
@@ -289,14 +302,17 @@ pub fn ClubDetail(club_id: i32) -> Element {
                                                                 return;
                                                             }
 
-                                                            status.set(None);
                                                             latest_invitation.set(None);
                                                             let expires_in_days = parse_invitation_days(&invitation_days());
                                                             spawn(async move {
                                                                 let expires_in_days = match expires_in_days {
                                                                     Ok(days) => days,
                                                                     Err(error) => {
-                                                                        status.set(Some((false, format!("Einladung konnte nicht erstellt werden: {error}"))));
+                                                                        show_error_toast(
+                                                                            toast,
+                                                                            "Einladung konnte nicht erstellt werden",
+                                                                            error,
+                                                                        );
                                                                         return;
                                                                     }
                                                                 };
@@ -318,11 +334,19 @@ pub fn ClubDetail(club_id: i32) -> Element {
                                                                             InvitationRole::Trainer => "Trainer-Code",
                                                                             InvitationRole::Player => "Spieler-Code",
                                                                         };
-                                                                        status.set(Some((true, format!("{label} für die Gruppe wurde erstellt."))));
+                                                                        show_success_toast(
+                                                                            toast,
+                                                                            format!("{label} erstellt"),
+                                                                            "Der neue Code ist jetzt sichtbar und kann kopiert werden.",
+                                                                        );
                                                                         refresh.with_mut(|value| *value += 1);
                                                                     }
                                                                     Err(error) => {
-                                                                        status.set(Some((false, format!("Einladung konnte nicht erstellt werden: {error}"))));
+                                                                        show_error_toast(
+                                                                            toast,
+                                                                            "Einladung konnte nicht erstellt werden",
+                                                                            error.to_string(),
+                                                                        );
                                                                     }
                                                                 }
                                                             });
@@ -332,59 +356,54 @@ pub fn ClubDetail(club_id: i32) -> Element {
                                                                 return;
                                                             }
 
-                                                            status.set(None);
-                                                            let username = trainer_names().get(&group_id).cloned().unwrap_or_default();
+                                                            let Some(user_id) = trainer_selections().get(&group_id).copied() else {
+                                                                show_error_toast(
+                                                                    toast,
+                                                                    "Trainer fehlt",
+                                                                    "Wähle zuerst eine Person aus der Liste aus.",
+                                                                );
+                                                                return;
+                                                            };
                                                             spawn(async move {
                                                                 busy_trainer.set(Some(group_id));
                                                                 let result = assign_group_trainer(AssignGroupTrainerInput {
                                                                     group_id,
-                                                                    username,
+                                                                    user_id,
                                                                 })
                                                                 .await;
                                                                 busy_trainer.set(None);
 
                                                                 match result {
                                                                     Ok(trainer) => {
-                                                                        trainer_names.with_mut(|entries| {
-                                                                            entries.insert(group_id, String::new());
+                                                                        trainer_selections.with_mut(|entries| {
+                                                                            entries.remove(&group_id);
                                                                         });
-                                                                        status.set(Some((true, format!("{} wurde als Trainer zugewiesen.", trainer.username))));
+                                                                        show_success_toast(
+                                                                            toast,
+                                                                            "Trainer zugewiesen",
+                                                                            format!(
+                                                                                "{} arbeitet jetzt in dieser Gruppe.",
+                                                                                trainer.username
+                                                                            ),
+                                                                        );
                                                                         refresh.with_mut(|value| *value += 1);
                                                                     }
                                                                     Err(error) => {
-                                                                        status.set(Some((false, format!("Trainer konnte nicht zugewiesen werden: {error}"))));
+                                                                        show_error_toast(
+                                                                            toast,
+                                                                            "Trainer konnte nicht zugewiesen werden",
+                                                                            error.to_string(),
+                                                                        );
                                                                     }
                                                                 }
                                                             });
                                                         },
-                                                        on_remove_trainer: move |(group_id, user_id)| {
-                                                            if removing_trainer().is_some() {
-                                                                return;
-                                                            }
-
-                                                            status.set(None);
-                                                            spawn(async move {
-                                                                removing_trainer.set(Some((group_id, user_id)));
-                                                                let result = remove_group_trainer(group_id, user_id).await;
-                                                                removing_trainer.set(None);
-
-                                                                match result {
-                                                                    Ok(()) => {
-                                                                        status.set(Some((true, "Trainer wurde aus der Gruppe entfernt.".to_string())));
-                                                                        refresh.with_mut(|value| *value += 1);
-                                                                    }
-                                                                    Err(error) => {
-                                                                        status.set(Some((false, format!("Trainer konnte nicht entfernt werden: {error}"))));
-                                                                    }
-                                                                }
-                                                            });
-                                                        },
+                                                        on_remove_trainer: move |payload| confirm_remove_trainer.set(Some(payload)),
                                                         on_create_team: move |group_id| {
                                                             if busy_team().is_some() {
                                                                 return;
                                                             }
 
-                                                            status.set(None);
                                                             let name = new_team_names().get(&group_id).cloned().unwrap_or_default();
                                                             let sort_order = team_sort_orders()
                                                                 .get(&group_id)
@@ -394,7 +413,11 @@ pub fn ClubDetail(club_id: i32) -> Element {
                                                                 let sort_order = match parse_sort_order(&sort_order) {
                                                                     Ok(value) => value,
                                                                     Err(error) => {
-                                                                        status.set(Some((false, format!("Mannschaft konnte nicht angelegt werden: {error}"))));
+                                                                        show_error_toast(
+                                                                            toast,
+                                                                            "Mannschaft konnte nicht angelegt werden",
+                                                                            error,
+                                                                        );
                                                                         return;
                                                                     }
                                                                 };
@@ -417,11 +440,19 @@ pub fn ClubDetail(club_id: i32) -> Element {
                                                                         team_sort_orders.with_mut(|entries| {
                                                                             entries.insert(group_id, "0".to_string());
                                                                         });
-                                                                        status.set(Some((true, format!("Mannschaft '{}' wurde angelegt.", team.name))));
+                                                                        show_success_toast(
+                                                                            toast,
+                                                                            "Mannschaft angelegt",
+                                                                            format!("Die Mannschaft '{}' ist jetzt verfügbar.", team.name),
+                                                                        );
                                                                         refresh.with_mut(|value| *value += 1);
                                                                     }
                                                                     Err(error) => {
-                                                                        status.set(Some((false, format!("Mannschaft konnte nicht angelegt werden: {error}"))));
+                                                                        show_error_toast(
+                                                                            toast,
+                                                                            "Mannschaft konnte nicht angelegt werden",
+                                                                            error.to_string(),
+                                                                        );
                                                                     }
                                                                 }
                                                             });
@@ -431,71 +462,46 @@ pub fn ClubDetail(club_id: i32) -> Element {
                                                                 return;
                                                             }
 
-                                                            status.set(None);
-                                                            let username = player_names().get(&team_id).cloned().unwrap_or_default();
+                                                            let Some(user_id) = player_selections().get(&team_id).copied() else {
+                                                                show_error_toast(
+                                                                    toast,
+                                                                    "Spieler fehlt",
+                                                                    "Wähle zuerst ein freies Mitglied aus der Liste aus.",
+                                                                );
+                                                                return;
+                                                            };
                                                             spawn(async move {
                                                                 busy_team.set(Some(team_id));
-                                                                let result = assign_team_player(AssignTeamPlayerInput { team_id, username }).await;
+                                                                let result = assign_team_player(AssignTeamPlayerInput { team_id, user_id }).await;
                                                                 busy_team.set(None);
 
                                                                 match result {
                                                                     Ok(player) => {
-                                                                        player_names.with_mut(|entries| {
-                                                                            entries.insert(team_id, String::new());
+                                                                        player_selections.with_mut(|entries| {
+                                                                            entries.remove(&team_id);
                                                                         });
-                                                                        status.set(Some((true, format!("{} wurde der Mannschaft zugewiesen.", player.username))));
+                                                                        show_success_toast(
+                                                                            toast,
+                                                                            "Spieler zugewiesen",
+                                                                            format!(
+                                                                                "{} gehört jetzt zu dieser Mannschaft.",
+                                                                                player.username
+                                                                            ),
+                                                                        );
                                                                         refresh.with_mut(|value| *value += 1);
                                                                     }
                                                                     Err(error) => {
-                                                                        status.set(Some((false, format!("Spieler konnte nicht zugewiesen werden: {error}"))));
+                                                                        show_error_toast(
+                                                                            toast,
+                                                                            "Spieler konnte nicht zugewiesen werden",
+                                                                            error.to_string(),
+                                                                        );
                                                                     }
                                                                 }
                                                             });
                                                         },
-                                                        on_remove_player: move |(team_id, user_id)| {
-                                                            if removing_player().is_some() {
-                                                                return;
-                                                            }
-
-                                                            status.set(None);
-                                                            spawn(async move {
-                                                                removing_player.set(Some((team_id, user_id)));
-                                                                let result = remove_team_player(team_id, user_id).await;
-                                                                removing_player.set(None);
-
-                                                                match result {
-                                                                    Ok(()) => {
-                                                                        status.set(Some((true, "Spieler wurde aus der Mannschaft entfernt.".to_string())));
-                                                                        refresh.with_mut(|value| *value += 1);
-                                                                    }
-                                                                    Err(error) => {
-                                                                        status.set(Some((false, format!("Spieler konnte nicht entfernt werden: {error}"))));
-                                                                    }
-                                                                }
-                                                            });
-                                                        },
-                                                        on_revoke_invitation: move |invitation_id| {
-                                                            if revoking_invitation().is_some() {
-                                                                return;
-                                                            }
-
-                                                            status.set(None);
-                                                            spawn(async move {
-                                                                revoking_invitation.set(Some(invitation_id));
-                                                                let result = revoke_invitation(invitation_id).await;
-                                                                revoking_invitation.set(None);
-
-                                                                match result {
-                                                                    Ok(()) => {
-                                                                        status.set(Some((true, "Einladung wurde widerrufen.".to_string())));
-                                                                        refresh.with_mut(|value| *value += 1);
-                                                                    }
-                                                                    Err(error) => {
-                                                                        status.set(Some((false, format!("Einladung konnte nicht widerrufen werden: {error}"))));
-                                                                    }
-                                                                }
-                                                            });
-                                                        }
+                                                        on_remove_player: move |payload| confirm_remove_player.set(Some(payload)),
+                                                        on_revoke_invitation: move |invitation_id| confirm_revoke_invitation.set(Some(invitation_id))
                                                     }
                                                 }
                                             }}
@@ -524,14 +530,17 @@ pub fn ClubDetail(club_id: i32) -> Element {
                                                     return;
                                                 }
 
-                                                status.set(None);
                                                 latest_invitation.set(None);
                                                 let expires_in_days = parse_invitation_days(&invitation_days());
                                                 spawn(async move {
                                                     let expires_in_days = match expires_in_days {
                                                         Ok(days) => days,
                                                         Err(error) => {
-                                                            status.set(Some((false, format!("Spieler-Code konnte nicht erstellt werden: {error}"))));
+                                                            show_error_toast(
+                                                                toast,
+                                                                "Spieler-Code konnte nicht erstellt werden",
+                                                                error,
+                                                            );
                                                             return;
                                                         }
                                                     };
@@ -549,11 +558,19 @@ pub fn ClubDetail(club_id: i32) -> Element {
                                                     match result {
                                                         Ok(created_invitation) => {
                                                             latest_invitation.set(Some(created_invitation.clone()));
-                                                            status.set(Some((true, "Spieler-Code für den Verein wurde erstellt.".to_string())));
+                                                            show_success_toast(
+                                                                toast,
+                                                                "Spieler-Code erstellt",
+                                                                "Der neue Vereinscode ist jetzt sichtbar und kann kopiert werden.",
+                                                            );
                                                             refresh.with_mut(|value| *value += 1);
                                                         }
                                                         Err(error) => {
-                                                            status.set(Some((false, format!("Spieler-Code konnte nicht erstellt werden: {error}"))));
+                                                            show_error_toast(
+                                                                toast,
+                                                                "Spieler-Code konnte nicht erstellt werden",
+                                                                error.to_string(),
+                                                            );
                                                         }
                                                     }
                                                 });
@@ -583,14 +600,17 @@ pub fn ClubDetail(club_id: i32) -> Element {
                                                     return;
                                                 }
 
-                                                status.set(None);
                                                 let sort_order = parse_sort_order(&group_sort_order());
                                                 let name = group_name();
                                                 spawn(async move {
                                                     let sort_order = match sort_order {
                                                         Ok(sort_order) => sort_order,
                                                         Err(error) => {
-                                                            status.set(Some((false, format!("Gruppe konnte nicht angelegt werden: {error}"))));
+                                                            show_error_toast(
+                                                                toast,
+                                                                "Gruppe konnte nicht angelegt werden",
+                                                                error,
+                                                            );
                                                             return;
                                                         }
                                                     };
@@ -609,16 +629,176 @@ pub fn ClubDetail(club_id: i32) -> Element {
                                                             group_name.set(String::new());
                                                             group_sort_order.set("0".to_string());
                                                             group_sheet_open.set(false);
-                                                            status.set(Some((true, format!("Gruppe '{}' wurde angelegt.", created_group.name))));
+                                                            show_success_toast(
+                                                                toast,
+                                                                "Gruppe angelegt",
+                                                                format!("Die Gruppe '{}' ist jetzt verfügbar.", created_group.name),
+                                                            );
                                                             refresh.with_mut(|value| *value += 1);
                                                         }
                                                         Err(error) => {
-                                                            status.set(Some((false, format!("Gruppe konnte nicht angelegt werden: {error}"))));
+                                                            show_error_toast(
+                                                                toast,
+                                                                "Gruppe konnte nicht angelegt werden",
+                                                                error.to_string(),
+                                                            );
                                                         }
                                                     }
                                                 });
                                             }
                                         }
+                                    }
+                                }
+
+                                ConfirmActionDialog {
+                                    open: confirm_remove_trainer().is_some(),
+                                    title: "Trainer entfernen".to_string(),
+                                    description: if let Some((_, _, trainer_name)) = confirm_remove_trainer() {
+                                        format!(
+                                            "Möchtest du {} wirklich aus dieser Gruppe entfernen?",
+                                            trainer_name
+                                        )
+                                    } else {
+                                        "Möchtest du diesen Trainer wirklich aus der Gruppe entfernen?".to_string()
+                                    },
+                                    confirm_label: "Trainer entfernen".to_string(),
+                                    busy: removing_trainer().is_some(),
+                                    on_open_change: move |open: bool| {
+                                        if !open {
+                                            confirm_remove_trainer.set(None);
+                                        }
+                                    },
+                                    on_confirm: move |_| {
+                                        let Some((group_id, user_id, trainer_name)) = confirm_remove_trainer() else {
+                                            return;
+                                        };
+                                        if removing_trainer().is_some() {
+                                            return;
+                                        }
+
+                                        spawn(async move {
+                                            removing_trainer.set(Some((group_id, user_id)));
+                                            let result = remove_group_trainer(group_id, user_id).await;
+                                            removing_trainer.set(None);
+                                            confirm_remove_trainer.set(None);
+
+                                            match result {
+                                                Ok(()) => {
+                                                    show_success_toast(
+                                                        toast,
+                                                        "Trainer entfernt",
+                                                        format!("{trainer_name} wurde aus der Gruppe entfernt."),
+                                                    );
+                                                    refresh.with_mut(|value| *value += 1);
+                                                }
+                                                Err(error) => {
+                                                    show_error_toast(
+                                                        toast,
+                                                        "Trainer konnte nicht entfernt werden",
+                                                        error.to_string(),
+                                                    );
+                                                }
+                                            }
+                                        });
+                                    }
+                                }
+
+                                ConfirmActionDialog {
+                                    open: confirm_remove_player().is_some(),
+                                    title: "Spieler entfernen".to_string(),
+                                    description: if let Some((_, _, player_name)) = confirm_remove_player() {
+                                        format!(
+                                            "Möchtest du {} wirklich aus dieser Mannschaft entfernen?",
+                                            player_name
+                                        )
+                                    } else {
+                                        "Möchtest du diesen Spieler wirklich aus der Mannschaft entfernen?".to_string()
+                                    },
+                                    confirm_label: "Spieler entfernen".to_string(),
+                                    busy: removing_player().is_some(),
+                                    on_open_change: move |open: bool| {
+                                        if !open {
+                                            confirm_remove_player.set(None);
+                                        }
+                                    },
+                                    on_confirm: move |_| {
+                                        let Some((team_id, user_id, player_name)) = confirm_remove_player() else {
+                                            return;
+                                        };
+                                        if removing_player().is_some() {
+                                            return;
+                                        }
+
+                                        spawn(async move {
+                                            removing_player.set(Some((team_id, user_id)));
+                                            let result = remove_team_player(team_id, user_id).await;
+                                            removing_player.set(None);
+                                            confirm_remove_player.set(None);
+
+                                            match result {
+                                                Ok(()) => {
+                                                    show_success_toast(
+                                                        toast,
+                                                        "Spieler entfernt",
+                                                        format!("{player_name} wurde aus der Mannschaft entfernt."),
+                                                    );
+                                                    refresh.with_mut(|value| *value += 1);
+                                                }
+                                                Err(error) => {
+                                                    show_error_toast(
+                                                        toast,
+                                                        "Spieler konnte nicht entfernt werden",
+                                                        error.to_string(),
+                                                    );
+                                                }
+                                            }
+                                        });
+                                    }
+                                }
+
+                                ConfirmActionDialog {
+                                    open: confirm_revoke_invitation().is_some(),
+                                    title: "Einladung widerrufen".to_string(),
+                                    description: "Möchtest du diesen Einladungscode wirklich widerrufen? Danach kann er nicht mehr verwendet werden.".to_string(),
+                                    confirm_label: "Einladung widerrufen".to_string(),
+                                    busy: revoking_invitation().is_some(),
+                                    on_open_change: move |open: bool| {
+                                        if !open {
+                                            confirm_revoke_invitation.set(None);
+                                        }
+                                    },
+                                    on_confirm: move |_| {
+                                        let Some(invitation_id) = confirm_revoke_invitation() else {
+                                            return;
+                                        };
+                                        if revoking_invitation().is_some() {
+                                            return;
+                                        }
+
+                                        spawn(async move {
+                                            revoking_invitation.set(Some(invitation_id));
+                                            let result = revoke_invitation(invitation_id).await;
+                                            revoking_invitation.set(None);
+                                            confirm_revoke_invitation.set(None);
+
+                                            match result {
+                                                Ok(()) => {
+                                                    show_success_toast(
+                                                        toast,
+                                                        "Einladung widerrufen",
+                                                        "Der Code ist nicht mehr gültig.",
+                                                    );
+                                                    refresh.with_mut(|value| *value += 1);
+                                                }
+                                                Err(error) => {
+                                                    show_error_toast(
+                                                        toast,
+                                                        "Einladung konnte nicht widerrufen werden",
+                                                        error.to_string(),
+                                                    );
+                                                }
+                                            }
+                                        });
                                     }
                                 }
                             }
@@ -666,6 +846,8 @@ fn ClubInvitationForm(
     on_submit: EventHandler<()>,
     #[props(default = "club".to_string())] id_prefix: String,
 ) -> Element {
+    let toast = use_toast();
+
     rsx! {
         div { class: "section-stack mobile-form-stack",
             div { class: "form-grid-2",
@@ -690,10 +872,27 @@ fn ClubInvitationForm(
             }
             if let Some(created_invitation) = latest_invitation() {
                 if created_invitation.invitation.group_id.is_none() {
-                    StatusBanner {
-                        tone: StatusBannerTone::Success,
-                        title: Some("Neuer Spieler-Code".to_string()),
-                        message: created_invitation.plain_code.clone(),
+                    CopyableCodeCard {
+                        title: "Neuer Spieler-Code".to_string(),
+                        description: "Diesen Vereinscode kannst du direkt weitergeben oder kopieren.".to_string(),
+                        code: created_invitation.plain_code.clone(),
+                        copy_label: "Kopieren".to_string(),
+                        on_copy: move |code| {
+                            spawn(async move {
+                                match copy_to_clipboard(code).await {
+                                    Ok(()) => show_success_toast(
+                                        toast,
+                                        "Code kopiert",
+                                        "Der Vereinscode liegt jetzt in der Zwischenablage.",
+                                    ),
+                                    Err(error) => show_error_toast(
+                                        toast,
+                                        "Code konnte nicht kopiert werden",
+                                        error,
+                                    ),
+                                }
+                            });
+                        },
                     }
                 }
             }
@@ -748,9 +947,10 @@ fn GroupCreateForm(
 #[component]
 fn GroupAccordion(
     detail: ClubDetailData,
-    trainer_names: Signal<HashMap<i32, String>>,
+    club_members: Vec<ClubMemberOption>,
+    trainer_selections: Signal<HashMap<i32, i32>>,
     new_team_names: Signal<HashMap<i32, String>>,
-    player_names: Signal<HashMap<i32, String>>,
+    player_selections: Signal<HashMap<i32, i32>>,
     team_sort_orders: Signal<HashMap<i32, String>>,
     invitation_days: Signal<String>,
     latest_invitation: Signal<Option<CreatedInvitation>>,
@@ -762,10 +962,10 @@ fn GroupAccordion(
     removing_player: Signal<Option<(i32, i32)>>,
     on_create_invitation: EventHandler<(i32, InvitationRole)>,
     on_assign_trainer: EventHandler<i32>,
-    on_remove_trainer: EventHandler<(i32, i32)>,
+    on_remove_trainer: EventHandler<(i32, i32, String)>,
     on_create_team: EventHandler<i32>,
     on_assign_player: EventHandler<i32>,
-    on_remove_player: EventHandler<(i32, i32)>,
+    on_remove_player: EventHandler<(i32, i32, String)>,
     on_revoke_invitation: EventHandler<i32>,
 ) -> Element {
     rsx! {
@@ -812,7 +1012,8 @@ fn GroupAccordion(
                                         description: "Verwalte die Trainer, die in dieser Gruppe arbeiten dürfen.".to_string(),
                                         GroupTrainerSection {
                                             section: section.clone(),
-                                            trainer_names,
+                                            club_members: club_members.clone(),
+                                            trainer_selections,
                                             busy_trainer,
                                             removing_trainer,
                                             on_assign_trainer,
@@ -825,9 +1026,10 @@ fn GroupAccordion(
                                         description: "Lege Mannschaften an und ordne Spieler gezielt zu.".to_string(),
                                         GroupTeamsSection {
                                             group_id,
+                                            club_members: club_members.clone(),
                                             teams: section.teams.clone(),
                                             new_team_names,
-                                            player_names,
+                                            player_selections,
                                             team_sort_orders,
                                             busy_team,
                                             removing_player,
@@ -923,14 +1125,24 @@ fn GroupInvitationActionRow(
 #[component]
 fn GroupTrainerSection(
     section: ClubGroupWithTeams,
-    trainer_names: Signal<HashMap<i32, String>>,
+    club_members: Vec<ClubMemberOption>,
+    trainer_selections: Signal<HashMap<i32, i32>>,
     busy_trainer: Signal<Option<i32>>,
     removing_trainer: Signal<Option<(i32, i32)>>,
     on_assign_trainer: EventHandler<i32>,
-    on_remove_trainer: EventHandler<(i32, i32)>,
+    on_remove_trainer: EventHandler<(i32, i32, String)>,
 ) -> Element {
     let group_id = section.group.id;
     let mut trainer_sheet_open = use_signal(|| false);
+    let trainer_candidates = club_members
+        .into_iter()
+        .filter(|member| {
+            !section
+                .trainers
+                .iter()
+                .any(|trainer| trainer.user_id == member.user_id)
+        })
+        .collect::<Vec<_>>();
 
     rsx! {
         div { class: "section-stack",
@@ -954,7 +1166,7 @@ fn GroupTrainerSection(
                                     Button {
                                         variant: ButtonVariant::Ghost,
                                         disabled: removing_trainer() == Some((group_id, trainer_user_id)),
-                                        onclick: move |_| on_remove_trainer.call((group_id, trainer_user_id)),
+                                        onclick: move |_| on_remove_trainer.call((group_id, trainer_user_id, trainer_name.clone())),
                                         {if removing_trainer() == Some((group_id, trainer_user_id)) { "Entfernt..." } else { "Entfernen" }}
                                     }
                                 }
@@ -967,7 +1179,8 @@ fn GroupTrainerSection(
             div { class: "desktop-only",
                 TrainerAssignmentForm {
                     group_id,
-                    trainer_names,
+                    trainer_candidates: trainer_candidates.clone(),
+                    trainer_selections,
                     busy_trainer,
                     on_assign_trainer,
                 }
@@ -993,7 +1206,8 @@ fn GroupTrainerSection(
                 div { class: "mobile-sheet-body",
                     TrainerAssignmentForm {
                         group_id,
-                        trainer_names,
+                        trainer_candidates,
+                        trainer_selections,
                         busy_trainer,
                         id_prefix: "trainer-sheet".to_string(),
                         on_assign_trainer,
@@ -1015,6 +1229,8 @@ fn GroupInvitationSection(
     on_create_invitation: EventHandler<(i32, InvitationRole)>,
     on_revoke_invitation: EventHandler<i32>,
 ) -> Element {
+    let toast = use_toast();
+
     rsx! {
         div { class: "section-stack",
             GroupInvitationFormFields {
@@ -1025,10 +1241,27 @@ fn GroupInvitationSection(
             }
             if let Some(created_invitation) = latest_invitation() {
                 if created_invitation.invitation.group_id == Some(group_id) {
-                    StatusBanner {
-                        tone: StatusBannerTone::Success,
-                        title: Some("Neuer Code".to_string()),
-                        message: created_invitation.plain_code.clone(),
+                    CopyableCodeCard {
+                        title: "Neuer Code".to_string(),
+                        description: "Diesen Code kannst du direkt kopieren und weitergeben.".to_string(),
+                        code: created_invitation.plain_code.clone(),
+                        copy_label: "Kopieren".to_string(),
+                        on_copy: move |code| {
+                            spawn(async move {
+                                match copy_to_clipboard(code).await {
+                                    Ok(()) => show_success_toast(
+                                        toast,
+                                        "Code kopiert",
+                                        "Der neue Einladungscode liegt jetzt in der Zwischenablage.",
+                                    ),
+                                    Err(error) => show_error_toast(
+                                        toast,
+                                        "Code konnte nicht kopiert werden",
+                                        error,
+                                    ),
+                                }
+                            });
+                        },
                     }
                 }
             }
@@ -1070,18 +1303,23 @@ fn GroupInvitationSection(
 #[component]
 fn GroupTeamsSection(
     group_id: i32,
+    club_members: Vec<ClubMemberOption>,
     teams: Vec<crate::clubs::TeamWithPlayers>,
     new_team_names: Signal<HashMap<i32, String>>,
-    player_names: Signal<HashMap<i32, String>>,
+    player_selections: Signal<HashMap<i32, i32>>,
     team_sort_orders: Signal<HashMap<i32, String>>,
     busy_team: Signal<Option<i32>>,
     removing_player: Signal<Option<(i32, i32)>>,
     on_create_team: EventHandler<i32>,
     on_assign_player: EventHandler<i32>,
-    on_remove_player: EventHandler<(i32, i32)>,
+    on_remove_player: EventHandler<(i32, i32, String)>,
 ) -> Element {
     let mut new_team_sheet_open = use_signal(|| false);
     let mut assign_player_sheet_team = use_signal(|| None::<i32>);
+    let free_players = club_members
+        .into_iter()
+        .filter(|member| !member.is_assigned_to_team)
+        .collect::<Vec<_>>();
 
     rsx! {
         div { class: "section-stack",
@@ -1124,7 +1362,7 @@ fn GroupTeamsSection(
                                                         Button {
                                                             variant: ButtonVariant::Ghost,
                                                             disabled: removing_player() == Some((team_id, player_user_id)),
-                                                            onclick: move |_| on_remove_player.call((team_id, player_user_id)),
+                                                            onclick: move |_| on_remove_player.call((team_id, player_user_id, player_name.clone())),
                                                             {if removing_player() == Some((team_id, player_user_id)) { "Entfernt..." } else { "Entfernen" }}
                                                         }
                                                     }
@@ -1136,7 +1374,8 @@ fn GroupTeamsSection(
                                 div { class: "desktop-only",
                                     TeamPlayerAssignmentForm {
                                         team_id,
-                                        player_names,
+                                        player_candidates: free_players.clone(),
+                                        player_selections,
                                         busy_team,
                                         on_assign_player,
                                     }
@@ -1168,7 +1407,8 @@ fn GroupTeamsSection(
                                     div { class: "mobile-sheet-body",
                                         TeamPlayerAssignmentForm {
                                             team_id,
-                                            player_names,
+                                            player_candidates: free_players.clone(),
+                                            player_selections,
                                             busy_team,
                                             id_prefix: format!("team-sheet-{team_id}"),
                                             on_assign_player,
@@ -1229,33 +1469,62 @@ fn GroupTeamsSection(
 #[component]
 fn TrainerAssignmentForm(
     group_id: i32,
-    trainer_names: Signal<HashMap<i32, String>>,
+    trainer_candidates: Vec<ClubMemberOption>,
+    trainer_selections: Signal<HashMap<i32, i32>>,
     busy_trainer: Signal<Option<i32>>,
     on_assign_trainer: EventHandler<i32>,
     #[props(default = "trainer".to_string())] id_prefix: String,
 ) -> Element {
+    let selected_trainer = use_memo(move || trainer_selections().get(&group_id).copied());
+    let trainer_disabled = use_memo(move || busy_trainer() == Some(group_id));
+    let has_candidates = !trainer_candidates.is_empty();
+
     rsx! {
         div { class: "section-stack mobile-form-stack",
-            div { class: "form-grid",
-                div { class: "auth-field",
-                    Label { html_for: format!("{id_prefix}-name-{group_id}"), "Trainer zuweisen" }
-                    Input {
-                        id: format!("{id_prefix}-name-{group_id}"),
-                        value: trainer_names().get(&group_id).cloned().unwrap_or_default(),
-                        placeholder: "Benutzername",
-                        disabled: busy_trainer() == Some(group_id),
-                        oninput: move |event: FormEvent| {
-                            trainer_names.with_mut(|entries| {
-                                entries.insert(group_id, event.value());
-                            });
-                        },
+            if !has_candidates {
+                EmptyStatePanel {
+                    title: "Keine Person mehr auswählbar".to_string(),
+                    message: "Alle Vereinsmitglieder sind für diese Gruppe bereits als Trainer eingetragen.".to_string(),
+                }
+            } else {
+                div { class: "form-grid",
+                    div { class: "auth-field",
+                        p { class: "section-label", "Trainer zuweisen" }
+                        Combobox::<i32> {
+                            value: Some(selected_trainer.into()),
+                            disabled: ReadSignal::new(trainer_disabled),
+                            placeholder: "Person auswählen".to_string(),
+                            aria_label: Some("Trainer auswählen".to_string()),
+                            list_aria_label: Some("Verfügbare Trainer".to_string()),
+                            on_value_change: move |value| {
+                                trainer_selections.with_mut(|entries| {
+                                    if let Some(value) = value {
+                                        entries.insert(group_id, value);
+                                    } else {
+                                        entries.remove(&group_id);
+                                    }
+                                });
+                            },
+                            for (index, member) in trainer_candidates.into_iter().enumerate() {
+                                ComboboxOption::<i32> {
+                                    key: "{member.user_id}",
+                                    index,
+                                    value: member.user_id,
+                                    text_value: member.username.clone(),
+                                    "{member.username}"
+                                }
+                            }
+                            ComboboxEmpty {
+                                "Keine passende Person gefunden"
+                            }
+                        }
                     }
                 }
             }
             div { class: "section-actions mobile-form-actions",
                 Button {
                     variant: ButtonVariant::Outline,
-                    disabled: busy_trainer().is_some(),
+                    disabled: busy_trainer().is_some() || !has_candidates,
                     onclick: move |_| on_assign_trainer.call(group_id),
                     {if busy_trainer() == Some(group_id) { "Speichert..." } else { "Trainer zuweisen" }}
                 }
@@ -1307,33 +1576,62 @@ fn GroupInvitationFormFields(
 #[component]
 fn TeamPlayerAssignmentForm(
     team_id: i32,
-    player_names: Signal<HashMap<i32, String>>,
+    player_candidates: Vec<ClubMemberOption>,
+    player_selections: Signal<HashMap<i32, i32>>,
     busy_team: Signal<Option<i32>>,
     on_assign_player: EventHandler<i32>,
     #[props(default = "player".to_string())] id_prefix: String,
 ) -> Element {
+    let selected_player = use_memo(move || player_selections().get(&team_id).copied());
+    let player_disabled = use_memo(move || busy_team() == Some(team_id));
+    let has_candidates = !player_candidates.is_empty();
+
     rsx! {
         div { class: "section-stack mobile-form-stack",
-            div { class: "form-grid",
-                div { class: "auth-field",
-                    Label { html_for: format!("{id_prefix}-name-{team_id}"), "Spieler zuweisen" }
-                    Input {
-                        id: format!("{id_prefix}-name-{team_id}"),
-                        value: player_names().get(&team_id).cloned().unwrap_or_default(),
-                        placeholder: "Benutzername",
-                        disabled: busy_team() == Some(team_id),
-                        oninput: move |event: FormEvent| {
-                            player_names.with_mut(|entries| {
-                                entries.insert(team_id, event.value());
-                            });
-                        },
+            if !has_candidates {
+                EmptyStatePanel {
+                    title: "Keine freien Spieler verfügbar".to_string(),
+                    message: "Aktuell gibt es kein Vereinsmitglied ohne Mannschaft, das du hier zuweisen könntest.".to_string(),
+                }
+            } else {
+                div { class: "form-grid",
+                    div { class: "auth-field",
+                        p { class: "section-label", "Spieler zuweisen" }
+                        Combobox::<i32> {
+                            value: Some(selected_player.into()),
+                            disabled: ReadSignal::new(player_disabled),
+                            placeholder: "Freies Mitglied auswählen".to_string(),
+                            aria_label: Some("Spieler auswählen".to_string()),
+                            list_aria_label: Some("Freie Spieler".to_string()),
+                            on_value_change: move |value| {
+                                player_selections.with_mut(|entries| {
+                                    if let Some(value) = value {
+                                        entries.insert(team_id, value);
+                                    } else {
+                                        entries.remove(&team_id);
+                                    }
+                                });
+                            },
+                            for (index, member) in player_candidates.into_iter().enumerate() {
+                                ComboboxOption::<i32> {
+                                    key: "{member.user_id}",
+                                    index,
+                                    value: member.user_id,
+                                    text_value: member.username.clone(),
+                                    "{member.username}"
+                                }
+                            }
+                            ComboboxEmpty {
+                                "Keine passende Person gefunden"
+                            }
+                        }
                     }
                 }
             }
             div { class: "section-actions mobile-form-actions",
                 Button {
                     variant: ButtonVariant::Outline,
-                    disabled: busy_team().is_some(),
+                    disabled: busy_team().is_some() || !has_candidates,
                     onclick: move |_| on_assign_player.call(team_id),
                     {if busy_team() == Some(team_id) { "Speichert..." } else { "Spieler zuweisen" }}
                 }

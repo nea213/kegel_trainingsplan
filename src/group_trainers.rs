@@ -10,7 +10,7 @@ pub struct AssignedTrainer {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AssignGroupTrainerInput {
     pub group_id: i32,
-    pub username: String,
+    pub user_id: i32,
 }
 
 #[post("/api/group-trainers/list")]

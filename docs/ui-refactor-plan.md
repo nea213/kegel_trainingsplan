@@ -520,18 +520,6 @@ Alle UI-Texte bleiben auf Deutsch.
 
 ## Konkrete Refactor-Phasen
 
-## Phase 4: Interaktionsqualitaet
-
-Ziel: schneller, sicherer, angenehmer.
-
-Umfang:
-
-- Toasts
-- Confirm-Dialoge
-- Copy-Aktionen
-- gefuehrte Auswahl statt Freitext
-- bessere Feedback-Muster
-
 ## Phase 5: Visuelles Feintuning
 
 Ziel: modernes, kohärentes Endbild.

@@ -13,7 +13,8 @@ use crate::components::ui::sheet::{
 };
 use crate::components::ui::textarea::Textarea;
 use crate::components::{
-    EmptyStatePanel, LoadingPanel, PageHeader, SectionPanel, StatusBanner, StatusBannerTone,
+    show_error_toast, show_success_toast, EmptyStatePanel, LoadingPanel, PageHeader,
+    SectionPanel, StatusBanner, StatusBannerTone,
 };
 use crate::dashboard::get_dashboard_context;
 use crate::teams::list_teams_for_group;
@@ -22,6 +23,7 @@ use crate::training::{
     training_scope_label, CreateTrainingSessionInput,
 };
 use dioxus::prelude::*;
+use dioxus_primitives::toast::use_toast;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum TrainingScopeSelection {
@@ -36,10 +38,10 @@ pub fn GroupDetail(group_id: i32) -> Element {
         let _ = refresh();
         async move { get_dashboard_context().await }
     })?;
+    let toast = use_toast();
     let context_state = context_resource.read().as_ref().cloned();
     let mut selected_team = use_signal(|| None::<i32>);
     let mut assigning = use_signal(|| None::<i32>);
-    let mut status = use_signal(|| None::<(bool, String)>);
     let mut training_title = use_signal(String::new);
     let mut training_description = use_signal(String::new);
     let mut training_location = use_signal(String::new);
@@ -131,18 +133,6 @@ pub fn GroupDetail(group_id: i32) -> Element {
                             description: "Arbeite Schritt für Schritt: Mannschaft festlegen, Spieler organisieren und danach Trainings planen.".to_string(),
                             eyebrow: Some(group.club_name.clone()),
                         }
-
-                        if let Some((success, message)) = status() {
-                            StatusBanner {
-                                tone: if success {
-                                    StatusBannerTone::Success
-                                } else {
-                                    StatusBannerTone::Error
-                                },
-                                message,
-                            }
-                        }
-
                         div { class: "workflow-grid",
                             div { class: "workflow-column",
                                 SectionPanel {
@@ -273,11 +263,14 @@ pub fn GroupDetail(group_id: i32) -> Element {
                                                                                 disabled: selected_team().is_none() || assigning() == Some(member_user_id),
                                                                                 onclick: move |_| {
                                                                                     let Some(team_id) = selected_team() else {
-                                                                                        status.set(Some((false, "Wähle zuerst eine aktive Mannschaft aus.".to_string())));
+                                                                                        show_error_toast(
+                                                                                            toast,
+                                                                                            "Mannschaft fehlt",
+                                                                                            "Wähle zuerst eine aktive Mannschaft aus.",
+                                                                                        );
                                                                                         return;
                                                                                     };
 
-                                                                                    status.set(None);
                                                                                     let success_name = member_username.clone();
                                                                                     spawn(async move {
                                                                                         assigning.set(Some(member_user_id));
@@ -291,11 +284,22 @@ pub fn GroupDetail(group_id: i32) -> Element {
 
                                                                                         match result {
                                                                                             Ok(()) => {
-                                                                                                status.set(Some((true, format!("{} wurde der aktiven Mannschaft zugewiesen.", success_name))));
+                                                                                                show_success_toast(
+                                                                                                    toast,
+                                                                                                    "Spieler zugewiesen",
+                                                                                                    format!(
+                                                                                                        "{} wurde der aktiven Mannschaft zugeordnet.",
+                                                                                                        success_name
+                                                                                                    ),
+                                                                                                );
                                                                                                 refresh.with_mut(|value| *value += 1);
                                                                                             }
                                                                                             Err(error) => {
-                                                                                                status.set(Some((false, format!("Spieler konnte nicht zugewiesen werden: {error}"))));
+                                                                                                show_error_toast(
+                                                                                                    toast,
+                                                                                                    "Spieler konnte nicht zugewiesen werden",
+                                                                                                    error.to_string(),
+                                                                                                );
                                                                                             }
                                                                                         }
                                                                                     });
@@ -351,14 +355,17 @@ pub fn GroupDetail(group_id: i32) -> Element {
                                                     TrainingScopeSelection::WholeGroup => None,
                                                     TrainingScopeSelection::ActiveTeam => {
                                                         let Some(team_id) = selected_team() else {
-                                                            status.set(Some((false, "Wähle zuerst eine aktive Mannschaft aus.".to_string())));
+                                                            show_error_toast(
+                                                                toast,
+                                                                "Mannschaft fehlt",
+                                                                "Wähle zuerst eine aktive Mannschaft aus.",
+                                                            );
                                                             return;
                                                         };
                                                         Some(team_id)
                                                     }
                                                 };
 
-                                                status.set(None);
                                                 let input = CreateTrainingSessionInput {
                                                     club_id: group.club_id,
                                                     group_id,
@@ -383,11 +390,22 @@ pub fn GroupDetail(group_id: i32) -> Element {
                                                             training_start_at.set(String::new());
                                                             training_end_at.set(String::new());
                                                             training_scope.set(TrainingScopeSelection::WholeGroup);
-                                                            status.set(Some((true, format!("Training '{}' wurde angelegt.", created_training.title))));
+                                                            show_success_toast(
+                                                                toast,
+                                                                "Training angelegt",
+                                                                format!(
+                                                                    "Das Training '{}' wurde erfolgreich geplant.",
+                                                                    created_training.title
+                                                                ),
+                                                            );
                                                             refresh.with_mut(|value| *value += 1);
                                                         }
                                                         Err(error) => {
-                                                            status.set(Some((false, format!("Training konnte nicht angelegt werden: {error}"))));
+                                                            show_error_toast(
+                                                                toast,
+                                                                "Training konnte nicht angelegt werden",
+                                                                error.to_string(),
+                                                            );
                                                         }
                                                     }
                                                 });
@@ -427,14 +445,17 @@ pub fn GroupDetail(group_id: i32) -> Element {
                                                     TrainingScopeSelection::WholeGroup => None,
                                                     TrainingScopeSelection::ActiveTeam => {
                                                         let Some(team_id) = selected_team() else {
-                                                            status.set(Some((false, "Wähle zuerst eine aktive Mannschaft aus.".to_string())));
+                                                            show_error_toast(
+                                                                toast,
+                                                                "Mannschaft fehlt",
+                                                                "Wähle zuerst eine aktive Mannschaft aus.",
+                                                            );
                                                             return;
                                                         };
                                                         Some(team_id)
                                                     }
                                                 };
 
-                                                status.set(None);
                                                 let input = CreateTrainingSessionInput {
                                                     club_id: group.club_id,
                                                     group_id,
@@ -460,11 +481,22 @@ pub fn GroupDetail(group_id: i32) -> Element {
                                                             training_end_at.set(String::new());
                                                             training_scope.set(TrainingScopeSelection::WholeGroup);
                                                             training_sheet_open.set(false);
-                                                            status.set(Some((true, format!("Training '{}' wurde angelegt.", created_training.title))));
+                                                            show_success_toast(
+                                                                toast,
+                                                                "Training angelegt",
+                                                                format!(
+                                                                    "Das Training '{}' wurde erfolgreich geplant.",
+                                                                    created_training.title
+                                                                ),
+                                                            );
                                                             refresh.with_mut(|value| *value += 1);
                                                         }
                                                         Err(error) => {
-                                                            status.set(Some((false, format!("Training konnte nicht angelegt werden: {error}"))));
+                                                            show_error_toast(
+                                                                toast,
+                                                                "Training konnte nicht angelegt werden",
+                                                                error.to_string(),
+                                                            );
                                                         }
                                                     }
                                                 });

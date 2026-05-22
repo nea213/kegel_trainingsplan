@@ -665,6 +665,12 @@ a {
     gap: 4px;
 }
 
+.code-result-card__code {
+    font-family: "IBM Plex Mono", "Fira Code", monospace;
+    font-size: 1rem;
+    word-break: break-all;
+}
+
 .detail-card-muted {
     background: color-mix(in srgb, var(--muted) 72%, var(--background) 28%);
 }
