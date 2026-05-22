@@ -9,49 +9,115 @@
 }
 
 .auth-panel--public {
-  position: relative;
-  display: grid;
+  width: 100%;
+}
+
+.auth-page {
   min-height: calc(100vh - 40px);
-  width: min(100%, 520px);
-  margin: 0 auto;
+  display: grid;
   align-items: center;
-  align-content: center;
-  padding: 24px 0;
-  isolation: isolate;
-}
-
-.auth-panel--public::before,
-.auth-panel--public::after {
-  position: absolute;
-  z-index: -1;
-  width: 280px;
-  height: 280px;
-  border-radius: 999px;
-  opacity: 0.18;
-  filter: blur(96px);
-  content: "";
-}
-
-.auth-panel--public::before {
-  top: 8%;
-  left: max(2%, calc(50% - 420px));
-  background: color-mix(in oklab, var(--ring) 28%, transparent);
-}
-
-.auth-panel--public::after {
-  right: max(2%, calc(50% - 400px));
-  bottom: 10%;
-  background: color-mix(in oklab, var(--primary) 16%, transparent);
 }
 
 .auth-page-shell {
-  width: min(100%, 520px);
+  width: min(100%, 1120px);
   margin: 0 auto;
 }
 
 .auth-page .auth-panel {
   max-width: none;
   margin: 0;
+}
+
+.auth-landing {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+  gap: 24px;
+  align-items: stretch;
+  isolation: isolate;
+}
+
+.auth-landing::before,
+.auth-landing::after {
+  position: absolute;
+  z-index: -1;
+  width: 320px;
+  height: 320px;
+  border-radius: 999px;
+  opacity: 0.22;
+  filter: blur(110px);
+  content: "";
+}
+
+.auth-landing::before {
+  top: -4%;
+  left: -2%;
+  background: color-mix(in oklab, var(--ring) 32%, transparent);
+}
+
+.auth-landing::after {
+  right: 0;
+  bottom: -8%;
+  background: color-mix(in oklab, var(--primary) 18%, transparent);
+}
+
+.auth-landing__hero,
+.auth-landing__panel {
+  min-height: 100%;
+}
+
+.auth-landing__hero {
+  display: grid;
+  align-content: space-between;
+  gap: 24px;
+  padding: clamp(28px, 3vw, 40px);
+}
+
+.auth-landing__hero-copy {
+  display: grid;
+  gap: 14px;
+}
+
+.auth-landing__title {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3.25rem);
+  line-height: 1.02;
+  letter-spacing: -0.05em;
+}
+
+.auth-landing__description {
+  max-width: 58ch;
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 1rem;
+  line-height: 1.75;
+}
+
+.auth-landing__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.auth-landing__panel {
+  display: grid;
+  align-items: stretch;
+}
+
+.auth-feature-list {
+  display: grid;
+  gap: 12px;
+}
+
+.auth-feature-list__item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in oklab, var(--border) 86%, transparent);
+  border-radius: var(--radius-lg);
+  background: color-mix(in oklab, var(--card) 90%, var(--muted) 10%);
 }
 
 .auth-grid {
@@ -66,20 +132,19 @@
 }
 
 .auth-card--wide {
-  max-width: 680px;
   width: 100%;
 }
 
 .auth-card-title-row {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  align-items: center;
+  justify-content: flex-start;
   gap: 12px;
 }
 
 .auth-form {
   display: grid;
-  gap: 22px;
+  gap: 20px;
 }
 
 .auth-field {
@@ -100,6 +165,17 @@
 
 .auth-actions--stack .dx-button {
   width: 100%;
+}
+
+.auth-card [data-slot="card-header"],
+.auth-card [data-slot="card-content"],
+.auth-card [data-slot="card-footer"] {
+  padding-left: clamp(1.25rem, 3vw, 2rem);
+  padding-right: clamp(1.25rem, 3vw, 2rem);
+}
+
+.auth-card [data-slot="card-header"] {
+  gap: 0.8rem;
 }
 
 .auth-user-row {
@@ -135,6 +211,10 @@
   box-shadow: var(--shadow-xs);
 }
 
+.auth-status--inline {
+  margin-top: 2px;
+}
+
 .auth-status--error {
   border-color: color-mix(in oklab, var(--destructive) 24%, var(--border));
   background: color-mix(in oklab, var(--destructive) 8%, var(--background));
@@ -146,13 +226,25 @@
 }
 
 @media (max-width: 640px) {
-  .auth-panel--public {
+  .auth-page {
     min-height: calc(100vh - 32px);
-    padding: 12px 0;
   }
 
   .auth-page-shell {
     width: 100%;
+  }
+
+  .auth-landing {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .auth-landing__hero {
+    padding: 22px 20px;
+  }
+
+  .auth-landing__title {
+    font-size: clamp(1.8rem, 8vw, 2.5rem);
   }
 
   .auth-user-row {

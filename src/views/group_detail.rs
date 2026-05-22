@@ -133,6 +133,36 @@ pub fn GroupDetail(group_id: i32) -> Element {
                             description: "Arbeite Schritt für Schritt: Mannschaft festlegen, Spieler organisieren und danach Trainings planen.".to_string(),
                             eyebrow: Some(group.club_name.clone()),
                         }
+                        div { class: "workflow-summary-card surface-card",
+                            div { class: "workflow-summary-card__header",
+                                div { class: "workflow-summary-card__copy",
+                                    p { class: "metric-card__label", "Aktiver Arbeitskontext" }
+                                    p { class: "workflow-summary-card__title",
+                                        {active_team_name.clone().unwrap_or_else(|| "Noch keine Mannschaft ausgewählt".to_string())}
+                                    }
+                                    p { class: "workflow-summary-card__text",
+                                        {
+                                            if active_team_name.is_some() {
+                                                "Spielerzuweisungen und teambezogene Trainings orientieren sich jetzt an dieser Auswahl.".to_string()
+                                            } else {
+                                                "Wähle zuerst eine Mannschaft aus. Danach werden Zuweisungen und teambezogene Trainings freigeschaltet.".to_string()
+                                            }
+                                        }
+                                    }
+                                }
+                                div { class: "detail-badges" ,
+                                    Badge {
+                                        variant: if active_team_name.is_some() {
+                                            BadgeVariant::Secondary
+                                        } else {
+                                            BadgeVariant::Outline
+                                        },
+                                        {if active_team_name.is_some() { "Bereit" } else { "Schritt 1 offen" }}
+                                    }
+                                    Badge { variant: BadgeVariant::Outline, "{group.club_name}" }
+                                }
+                            }
+                        }
                         div { class: "workflow-grid",
                             div { class: "workflow-column",
                                 SectionPanel {
@@ -174,12 +204,26 @@ pub fn GroupDetail(group_id: i32) -> Element {
                                                         for (index, team) in teams.into_iter().enumerate() {
                                                             Item {
                                                                 class: if selected_team() == Some(team.id) {
-                                                                    "content-list-item team-selection-item team-selection-item--active"
+                                                                    "content-list-item actionable-list-item team-selection-item team-selection-item--active"
                                                                 } else {
-                                                                    "content-list-item team-selection-item"
+                                                                    "content-list-item actionable-list-item team-selection-item"
                                                                 },
                                                                 ItemContent {
                                                                     ItemTitle { "{team.name}" }
+                                                                    div { class: "detail-badges",
+                                                                        Badge {
+                                                                            variant: if selected_team() == Some(team.id) {
+                                                                                BadgeVariant::Secondary
+                                                                            } else {
+                                                                                BadgeVariant::Outline
+                                                                            },
+                                                                            {if selected_team() == Some(team.id) {
+                                                                                "Aktive Mannschaft".to_string()
+                                                                            } else {
+                                                                                "Auswählbar".to_string()
+                                                                            }}
+                                                                        }
+                                                                    }
                                                                     ItemDescription {
                                                                         {if selected_team() == Some(team.id) {
                                                                             "Aktive Mannschaft".to_string()
@@ -215,10 +259,23 @@ pub fn GroupDetail(group_id: i32) -> Element {
                                     title: "2. Spieler organisieren".to_string(),
                                     description: "Ordne wartende Spieler direkt der aktiven Mannschaft zu.".to_string(),
                                     div { class: "workflow-context",
-                                        div { class: "detail-card detail-card-muted",
+                                        div { class: if active_team_name.is_some() {
+                                            "detail-card detail-card-muted workflow-focus-card"
+                                        } else {
+                                            "detail-card detail-card-muted workflow-focus-card workflow-focus-card--pending"
+                                        },
                                             p { class: "section-label", "Ziel für neue Zuweisungen" }
                                             p { class: "detail-card-title",
                                                 {active_team_name.clone().unwrap_or_else(|| "Bitte zuerst eine Mannschaft auswählen".to_string())}
+                                            }
+                                            p { class: "section-meta",
+                                                {
+                                                    if active_team_name.is_some() {
+                                                        "Neue Spieler werden direkt dieser Mannschaft zugeordnet.".to_string()
+                                                    } else {
+                                                        "Ohne aktive Mannschaft bleiben Zuweisungen gesperrt.".to_string()
+                                                    }
+                                                }
                                             }
                                         }
 
@@ -252,10 +309,15 @@ pub fn GroupDetail(group_id: i32) -> Element {
 
                                                                 rsx! {
                                                                     Item {
-                                                                        class: "content-list-item",
+                                                                        class: "content-list-item actionable-list-item",
                                                                         ItemContent {
                                                                             ItemTitle { "{member.username}" }
                                                                             ItemDescription { "Mitglied in {member.club_name}" }
+                                                                            if selected_team().is_none() {
+                                                                                div { class: "detail-badges",
+                                                                                    Badge { variant: BadgeVariant::Outline, "Mannschaft wählen" }
+                                                                                }
+                                                                            }
                                                                         }
                                                                         ItemActions {
                                                                             Button {
@@ -540,13 +602,17 @@ pub fn GroupDetail(group_id: i32) -> Element {
                                                 ItemGroup {
                                                     for (index, training) in trainings.into_iter().enumerate() {
                                                         Item {
-                                                            class: "content-list-item",
+                                                            class: "content-list-item training-list-item",
                                                             ItemContent {
                                                                 ItemTitle { "{training.title}" }
                                                                 div { class: "detail-badges",
                                                                     Badge {
                                                                         variant: BadgeVariant::Secondary,
                                                                         "{training_scope_label(&training)}"
+                                                                    }
+                                                                    Badge {
+                                                                        variant: BadgeVariant::Outline,
+                                                                        "{group.club_name}"
                                                                     }
                                                                 }
                                                                 div { class: "training-meta-stack",
@@ -596,7 +662,11 @@ fn TrainingPlanningForm(
 ) -> Element {
     rsx! {
         div { class: "section-stack mobile-form-stack",
-            div { class: "detail-card detail-card-muted",
+            div { class: if active_team_ready {
+                "detail-card detail-card-muted training-scope-card"
+            } else {
+                "detail-card detail-card-muted training-scope-card training-scope-card--pending"
+            },
                 p { class: "section-label", "Ziel des Trainings" }
                 div { class: "section-actions mobile-selection-actions",
                     Button {
@@ -632,6 +702,11 @@ fn TrainingPlanningForm(
                                 )
                             }
                         }
+                    }
+                }
+                if !active_team_ready {
+                    p { class: "section-meta training-scope-card__warning",
+                        "Für ein Training nur der aktiven Mannschaft musst du zuerst in Schritt 1 eine Mannschaft auswählen."
                     }
                 }
             }

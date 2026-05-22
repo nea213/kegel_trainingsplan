@@ -5,6 +5,7 @@ use crate::clubs::{
 use crate::components::ui::accordion::{
     Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 };
+use crate::components::ui::badge::{Badge, BadgeVariant};
 use crate::components::ui::button::{Button, ButtonVariant};
 use crate::components::ui::combobox::{Combobox, ComboboxEmpty, ComboboxOption};
 use crate::components::ui::dropdown_menu::{
@@ -191,6 +192,28 @@ pub fn ClubDetail(club_id: i32) -> Element {
                                         index: 0usize,
                                         value: "overview".to_string(),
                                         div { class: "tab-section",
+                                            div { class: "overview-callout-grid",
+                                                div { class: "detail-card overview-callout-card",
+                                                    div { class: "detail-card-copy",
+                                                        p { class: "section-label", "Schneller Überblick" }
+                                                        p { class: "detail-card-title", "Verwaltungsstand für {detail.club.name}" }
+                                                        p { class: "section-meta", "Gruppen, Mannschaften und Einladungen bleiben getrennt, damit jede Aktion im passenden Kontext bleibt." }
+                                                    }
+                                                    div { class: "detail-badges",
+                                                        Badge { variant: BadgeVariant::Secondary, "{group_count} Gruppen" }
+                                                        Badge { variant: BadgeVariant::Outline, "{invitation_count} aktive Einladungen" }
+                                                    }
+                                                }
+                                                if let Some(created_invitation) = latest_invitation() {
+                                                    div { class: "detail-card detail-card-muted overview-callout-card" ,
+                                                        div { class: "detail-card-copy",
+                                                            p { class: "section-label", "Zuletzt erstellt" }
+                                                            p { class: "detail-card-title code-result-card__code", "{created_invitation.plain_code}" }
+                                                            p { class: "section-meta", "Der zuletzt erzeugte Code bleibt hier sichtbar, bis ein neuer Code erstellt wird." }
+                                                        }
+                                                    }
+                                                }
+                                            }
                                             SectionPanel {
                                                 title: "Neue Gruppe anlegen".to_string(),
                                                 description: "Lege weitere Gruppen an und gib ihnen direkt eine Reihenfolge für die Vereinsansicht.".to_string(),
@@ -203,7 +226,7 @@ pub fn ClubDetail(club_id: i32) -> Element {
                                                         }
                                                     }
                                                 }),
-                                                div { class: "desktop-only",
+                                                div { class: "desktop-only detail-card detail-card-muted group-create-shell",
                                                     GroupCreateForm {
                                                         group_name,
                                                         group_sort_order,
@@ -992,6 +1015,7 @@ fn GroupAccordion(
                                     div { class: "group-accordion-stats",
                                         span { class: "group-summary-pill", "{trainer_count} Trainer" }
                                         span { class: "group-summary-pill", "{team_count} Mannschaften" }
+                                        span { class: "group-summary-pill", "{section.invitations.len()} Einladungen" }
                                     }
                                 }
                             }
@@ -1065,7 +1089,7 @@ fn GroupInvitationActionRow(
     rsx! {
         div { class: "group-action-row detail-card detail-card-muted",
             div { class: "group-action-row__copy",
-                p { class: "section-label", "Nebenfunktionen" }
+                p { class: "section-label", "Einladungen und Zusatzaktionen" }
                 p { class: "section-meta",
                     {
                         if invitation_count > 0 {
@@ -1176,7 +1200,7 @@ fn GroupTrainerSection(
                 }
             }
 
-            div { class: "desktop-only",
+            div { class: "desktop-only detail-card detail-card-muted management-action-card",
                 TrainerAssignmentForm {
                     group_id,
                     trainer_candidates: trainer_candidates.clone(),
@@ -1335,11 +1359,14 @@ fn GroupTeamsSection(
                         let team_name = team_section.team.name.clone();
 
                         rsx! {
-                            div { class: "detail-card",
+                            div { class: "detail-card team-management-card",
                                 div { class: "detail-card-header",
                                     div { class: "detail-card-copy",
                                         p { class: "detail-card-title", "{team_name}" }
                                         p { class: "section-meta", "{team_section.players.len()} zugewiesene Spieler" }
+                                    }
+                                    div { class: "detail-badges",
+                                        Badge { variant: BadgeVariant::Outline, "Reihenfolge {team_section.team.sort_order}" }
                                     }
                                 }
                                 if team_section.players.is_empty() {
@@ -1371,7 +1398,7 @@ fn GroupTeamsSection(
                                         }
                                     }
                                 }
-                                div { class: "desktop-only",
+                                div { class: "desktop-only detail-card detail-card-muted management-action-card",
                                     TeamPlayerAssignmentForm {
                                         team_id,
                                         player_candidates: free_players.clone(),

@@ -48,7 +48,9 @@ pub fn Navbar() -> Element {
             None => rsx! {
                 header {
                     id: "navbar",
+                    class: "navbar-shell navbar-shell--loading",
                     div { class: "nav-brand",
+                        div { class: "nav-brand__badge", "Kegel Trainingsplan" }
                         h1 { class: "nav-title", "Kegel Trainingsplan" }
                         p { class: "nav-subtitle", "Authentifizierung wird geprüft..." }
                     }
@@ -57,7 +59,7 @@ pub fn Navbar() -> Element {
             Some(None) => rsx! {
                 section {
                     id: "home-intro",
-                    div { class: "auth-status",
+                    div { class: "auth-status nav-redirect-state",
                         p { class: "auth-help", "Du wirst zur Login-Seite weitergeleitet..." }
                     }
                 }
@@ -65,7 +67,9 @@ pub fn Navbar() -> Element {
             Some(Some(user)) => rsx! {
                 header {
                     id: "navbar",
+                    class: "navbar-shell",
                     div { class: "nav-brand",
+                        div { class: "nav-brand__badge", "Kegel Trainingsplan" }
                         h1 { class: "nav-title", "Kegel Trainingsplan" }
                         p { class: "nav-subtitle", "Training, Gruppen und Vereine an einem Ort." }
                     }
@@ -136,6 +140,7 @@ fn UserMenu(user: PublicUser) -> Element {
                                 AvatarFallback { "{trigger_initials}" }
                             }
                             div { class: "nav-user-copy",
+                                span { class: "nav-user-kicker", "Angemeldet" }
                                 span { class: "nav-user-name", "{trigger_username}" }
                             }
                         }

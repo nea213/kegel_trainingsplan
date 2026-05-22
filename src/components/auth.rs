@@ -2,6 +2,7 @@ use crate::auth::{
     current_user, login_user, logout_user, register_user, LoginInput, PublicUser, RegisterInput,
 };
 use crate::components::ui::avatar::{Avatar, AvatarFallback, AvatarImageSize};
+use crate::components::ui::badge::{Badge, BadgeVariant};
 use crate::components::ui::button::{Button, ButtonVariant};
 use crate::components::ui::card::{
     Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle,
@@ -167,6 +168,9 @@ pub fn LoginPanel(return_to: Option<String>) -> Element {
             Card {
                 class: "auth-card auth-card--wide",
                 CardHeader {
+                    div { class: "auth-card-title-row",
+                        Badge { variant: BadgeVariant::Outline, "Login" }
+                    }
                     CardTitle { "Login" }
                     CardDescription {
                         "Melde dich mit deinem Benutzernamen und Passwort an, um zu deiner zuletzt angeforderten Seite zurückzukehren."
@@ -194,6 +198,14 @@ pub fn LoginPanel(return_to: Option<String>) -> Element {
                                 disabled: busy(),
                                 oninput: move |event: FormEvent| login_password.set(event.value()),
                             }
+                        }
+                    }
+                }
+                if let Some(message) = status() {
+                    CardContent {
+                        div {
+                            class: "auth-status auth-status--error",
+                            p { class: "auth-help", "{message}" }
                         }
                     }
                 }
@@ -247,13 +259,6 @@ pub fn LoginPanel(return_to: Option<String>) -> Element {
                     }
                 }
             }
-
-            if let Some(message) = status() {
-                div {
-                    class: "auth-status auth-status--error",
-                    p { class: "auth-help", "{message}" }
-                }
-            }
         }
     }
 }
@@ -279,6 +284,9 @@ pub fn RegisterPanel(return_to: Option<String>) -> Element {
             Card {
                 class: "auth-card auth-card--wide",
                 CardHeader {
+                    div { class: "auth-card-title-row",
+                        Badge { variant: BadgeVariant::Outline, "Registrierung" }
+                    }
                     CardTitle { "Registrieren" }
                     CardDescription {
                         "Registrierungen laufen nur mit gültigem Einladungscode. Nach erfolgreicher Registrierung wirst du direkt eingeloggt."
@@ -352,16 +360,24 @@ pub fn RegisterPanel(return_to: Option<String>) -> Element {
                         if let Some(preview) = invitation_preview() {
                             match preview {
                                 Ok(message) => rsx! {
-                                    div { class: "auth-status auth-status--success",
+                                    div { class: "auth-status auth-status--success auth-status--inline",
                                         p { class: "auth-help", "{message}" }
                                     }
                                 },
                                 Err(error) => rsx! {
-                                    div { class: "auth-status auth-status--error",
+                                    div { class: "auth-status auth-status--error auth-status--inline",
                                         p { class: "auth-help", "{error}" }
                                     }
                                 },
                             }
+                        }
+                    }
+                }
+                if let Some(message) = status() {
+                    CardContent {
+                        div {
+                            class: "auth-status auth-status--error",
+                            p { class: "auth-help", "{message}" }
                         }
                     }
                 }
@@ -415,13 +431,6 @@ pub fn RegisterPanel(return_to: Option<String>) -> Element {
                         },
                         "Schon ein Konto? Zum Login"
                     }
-                }
-            }
-
-            if let Some(message) = status() {
-                div {
-                    class: "auth-status auth-status--error",
-                    p { class: "auth-help", "{message}" }
                 }
             }
         }

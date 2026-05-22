@@ -1,4 +1,5 @@
 use crate::components::ui::button::{Button, ButtonVariant};
+use crate::components::ui::badge::{Badge, BadgeVariant};
 use crate::components::ui::item::{
     Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemSeparator, ItemTitle,
 };
@@ -54,6 +55,11 @@ pub fn Dashboard() -> Element {
                 Some(Ok(trainings)) => trainings.len(),
                 _ => 0,
             };
+            let primary_title = if context.user.is_system_admin {
+                "Verwalten, zuweisen und Überblick behalten"
+            } else {
+                "Dein Trainingsalltag auf einen Blick"
+            };
             let welcome_description = {
                 let mut lines = Vec::new();
                 if context.user.is_system_admin {
@@ -80,7 +86,7 @@ pub fn Dashboard() -> Element {
                 section { class: "page-section",
                     div { class: "page-stack page-stack--spacious",
                         PageHeader {
-                            title: format!("Willkommen, {}", context.user.username),
+                            title: format!("{primary_title}, {}", context.user.username),
                             description: welcome_description,
                             eyebrow: Some("Dashboard".to_string()),
                             actions: if context.user.is_system_admin {
@@ -98,40 +104,85 @@ pub fn Dashboard() -> Element {
                             },
                         }
 
+                        div { class: "dashboard-highlight-row",
+                            div { class: "dashboard-highlight-card surface-card",
+                                div { class: "dashboard-highlight-card__header",
+                                    p { class: "metric-card__label", "Priorität heute" }
+                                    Badge {
+                                        variant: BadgeVariant::Outline,
+                                        if context.user.is_system_admin {
+                                            "Administration"
+                                        } else {
+                                            "Trainerbereich"
+                                        }
+                                    }
+                                }
+                                p { class: "dashboard-highlight-card__title",
+                                    {
+                                        if context.user.is_system_admin {
+                                            if waiting_count > 0 {
+                                                format!("{waiting_count} Vereine warten noch auf eine Mannschaftszuteilung.")
+                                            } else {
+                                                "Alle Vereine sind aktuell ohne offene Zuweisungsstufe.".to_string()
+                                            }
+                                        } else if managed_group_count > 0 {
+                                            format!("{managed_group_count} Gruppen sind direkt für dich verfügbar.")
+                                        } else if waiting_count > 0 {
+                                            format!("{waiting_count} Vereine warten noch auf deine Zuteilung.")
+                                        } else {
+                                            "Sobald dir eine Gruppe zugewiesen wurde, erscheint sie hier zuerst.".to_string()
+                                        }
+                                    }
+                                }
+                                p { class: "dashboard-highlight-card__copy",
+                                    {
+                                        if context.user.is_system_admin {
+                                            "Öffne die Vereinsverwaltung, um Strukturen zu ergänzen, Codes zu erstellen oder offene Zuweisungen vorzubereiten."
+                                        } else {
+                                            "Starte mit deinen Gruppen, prüfe Mannschaften und plane danach die nächsten Trainings."
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
                         div { class: "metrics-grid",
                             MetricCard {
                                 label: "Betreute Gruppen".to_string(),
                                 value: managed_group_count.to_string(),
-                                detail: Some("Direkt aus deinem Trainerbereich.".to_string()),
+                                detail: Some("Direkt aus deinem Arbeitsbereich erreichbar.".to_string()),
                             }
                             MetricCard {
                                 label: "Zugewiesene Mannschaften".to_string(),
                                 value: team_count.to_string(),
-                                detail: Some("Aktuell für dich freigeschaltet.".to_string()),
+                                detail: Some("Aktuell für Trainings und Organisation aktiv.".to_string()),
                             }
                             MetricCard {
                                 label: "Wartende Vereine".to_string(),
                                 value: waiting_count.to_string(),
-                                detail: Some("Dort fehlt noch eine Mannschaftszuteilung.".to_string()),
+                                detail: Some("Dort fehlt noch eine nächste Verwaltungsaktion.".to_string()),
                             }
                             MetricCard {
                                 label: "Kommende Trainings".to_string(),
                                 value: upcoming_training_count.to_string(),
-                                detail: Some("Deine nächsten relevanten Termine.".to_string()),
+                                detail: Some("Die nächsten relevanten Termine im Blick.".to_string()),
                             }
                         }
 
                         if managed_group_count > 0 {
                             SectionPanel {
                                 title: "Meine Gruppen".to_string(),
-                                description: "Öffne die Gruppen, die du aktuell betreust.".to_string(),
+                                description: "Hier beginnst du direkt mit deinem nächsten Arbeitsschritt in der Gruppe.".to_string(),
                                 ItemGroup {
                                     for (index, group) in managed_groups.into_iter().enumerate() {
                                         Item {
-                                            class: "content-list-item",
+                                            class: "content-list-item actionable-list-item",
                                             ItemContent {
                                                 ItemTitle { "{group.group_name}" }
                                                 ItemDescription { "{group.club_name}" }
+                                                div { class: "detail-badges",
+                                                    Badge { variant: BadgeVariant::Secondary, "Direkt öffnen" }
+                                                }
                                             }
                                             ItemActions {
                                                 Button {
@@ -155,7 +206,7 @@ pub fn Dashboard() -> Element {
                                 description: "Hier erscheinen alle Gruppen, die du betreust.".to_string(),
                                 EmptyStatePanel {
                                     title: "Noch keine Gruppe verfügbar".to_string(),
-                                    message: "Sobald dir eine Gruppe zugewiesen wurde, kannst du hier direkt in deinen Arbeitsbereich springen.".to_string(),
+                                    message: "Sobald dir eine Gruppe zugewiesen wurde, kannst du hier direkt mit Mannschaften, Zuweisungen und Trainings starten.".to_string(),
                                 }
                             }
                         }
@@ -163,14 +214,17 @@ pub fn Dashboard() -> Element {
                         if team_count > 0 {
                             SectionPanel {
                                 title: "Meine Mannschaften".to_string(),
-                                description: "Diese Mannschaften sind dir aktuell zugeordnet.".to_string(),
+                                description: "Diese Mannschaften stehen dir aktuell für Organisation und Trainingsplanung zur Verfügung.".to_string(),
                                 ItemGroup {
                                     for (index, team) in assigned_teams.into_iter().enumerate() {
                                         Item {
-                                            class: "content-list-item",
+                                            class: "content-list-item actionable-list-item",
                                             ItemContent {
                                                 ItemTitle { "{team.name}" }
                                                 ItemDescription { "Für Training und Organisation verfügbar" }
+                                                div { class: "detail-badges",
+                                                    Badge { variant: BadgeVariant::Outline, "Mannschaft aktiv" }
+                                                }
                                             }
                                         }
                                         if index + 1 < team_count {
@@ -185,11 +239,12 @@ pub fn Dashboard() -> Element {
                                 description: "Dein Konto ist aktiv. Für diese Vereine fehlt noch die Mannschaftszuteilung.".to_string(),
                                 div { class: "state-list",
                                     for (_, club_name) in waiting_clubs {
-                                        div { class: "detail-row",
+                                        div { class: "detail-row detail-row--soft",
                                             div { class: "detail-row-copy",
                                                 span { class: "detail-row-title", "{club_name}" }
                                                 p { class: "detail-row-meta", "Nach der Zuteilung kannst du direkt weiterarbeiten." }
                                             }
+                                            Badge { variant: BadgeVariant::Outline, "Wartet" }
                                         }
                                     }
                                 }
@@ -234,11 +289,12 @@ pub fn Dashboard() -> Element {
                                         ItemGroup {
                                             for (index, training) in trainings.into_iter().enumerate() {
                                                 Item {
-                                                    class: "content-list-item",
+                                                    class: "content-list-item training-list-item",
                                                     ItemContent {
                                                         ItemTitle { "{training.title}" }
-                                                        ItemDescription {
-                                                            "{training.club_name} | {training_scope_label(&training)}"
+                                                        div { class: "detail-badges",
+                                                            Badge { variant: BadgeVariant::Secondary, "{training_scope_label(&training)}" }
+                                                            Badge { variant: BadgeVariant::Outline, "{training.club_name}" }
                                                         }
                                                         ItemDescription {
                                                             "{format_training_range(training.start_at, training.end_at)}"

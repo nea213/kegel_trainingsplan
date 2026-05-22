@@ -13,10 +13,10 @@ body {
     background: transparent;
     color: var(--foreground);
     font-family: var(--font-sans);
-    line-height: 1.5;
+    line-height: 1.6;
     margin: 0;
     min-height: 100vh;
-    padding: 20px;
+    padding: 0 20px 20px;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
 }
@@ -298,7 +298,7 @@ a {
 }
 
 .page-stack--spacious {
-    gap: 28px;
+    gap: 30px;
 }
 
 .section-stack {
@@ -332,7 +332,7 @@ a {
     background: color-mix(in oklab, var(--card) 92%, white 8%);
     border-color: color-mix(in oklab, var(--border) 82%, transparent);
     border-radius: calc(var(--radius-xl) + 10px);
-    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.04);
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.05);
 }
 
 .page-header {
@@ -426,6 +426,46 @@ a {
     display: grid;
     gap: 16px;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.dashboard-highlight-row,
+.overview-callout-grid {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.dashboard-highlight-card,
+.overview-callout-card {
+    display: grid;
+    gap: 16px;
+    padding: 1.5rem;
+}
+
+.dashboard-highlight-card__header,
+.workflow-summary-card__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.dashboard-highlight-card__title,
+.workflow-summary-card__title {
+    margin: 0;
+    color: var(--foreground);
+    font-size: clamp(1.25rem, 2vw, 1.55rem);
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.03em;
+}
+
+.dashboard-highlight-card__copy,
+.workflow-summary-card__text {
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: 0.95rem;
+    line-height: 1.65;
 }
 
 .metric-card {
@@ -548,9 +588,32 @@ a {
     padding-block: 14px;
 }
 
+.actionable-list-item {
+    border-radius: var(--radius-lg);
+    transition: background-color 150ms ease, border-color 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+}
+
+.actionable-list-item:hover {
+    border-color: color-mix(in oklab, var(--ring) 18%, var(--border));
+    background: color-mix(in oklab, var(--card) 92%, var(--muted) 8%);
+    box-shadow: var(--shadow-xs);
+    transform: translateY(-1px);
+}
+
 .state-list {
     display: grid;
     gap: 10px;
+}
+
+.workflow-summary-card {
+    display: grid;
+    gap: 18px;
+    padding: 1.4rem 1.5rem;
+}
+
+.workflow-summary-card__copy {
+    display: grid;
+    gap: 8px;
 }
 
 .workflow-grid {
@@ -616,6 +679,10 @@ a {
     background: var(--muted);
 }
 
+.detail-row--soft {
+    background: color-mix(in oklab, var(--muted) 62%, var(--background) 38%);
+}
+
 .detail-row-copy {
     display: grid;
     min-width: 0;
@@ -673,6 +740,24 @@ a {
 
 .detail-card-muted {
     background: color-mix(in srgb, var(--muted) 72%, var(--background) 28%);
+}
+
+.workflow-focus-card,
+.training-scope-card,
+.management-action-card,
+.team-management-card,
+.group-create-shell {
+    gap: 14px;
+}
+
+.workflow-focus-card--pending,
+.training-scope-card--pending {
+    border-style: dashed;
+}
+
+.training-scope-card__warning {
+    color: var(--destructive);
+    font-weight: 500;
 }
 
 .club-actions-menu,
@@ -770,6 +855,32 @@ a {
     white-space: nowrap;
 }
 
+.clubs-create-callout {
+    display: grid;
+    gap: 16px;
+}
+
+.clubs-create-callout__copy {
+    display: grid;
+    gap: 6px;
+}
+
+.clubs-create-form__grid {
+    align-items: end;
+}
+
+.club-list-item {
+    align-items: center;
+}
+
+.clubs-header-actions {
+    width: 100%;
+}
+
+.clubs-header-actions [data-slot="button"] {
+    width: 100%;
+}
+
 .group-accordion-panel {
     display: grid;
     gap: 12px;
@@ -811,6 +922,10 @@ a {
     max-width: 980px;
     margin: 24px auto 0 auto;
     opacity: 1;
+}
+
+.training-list-item [data-slot="item-content"] {
+    gap: 0.45rem;
 }
 
 .desktop-only {
@@ -859,6 +974,11 @@ a {
 }
 
 @media (max-width: 900px) {
+    .dashboard-highlight-card__header,
+    .workflow-summary-card__header {
+        flex-direction: column;
+    }
+
     .workflow-grid {
         grid-template-columns: 1fr;
     }
@@ -866,7 +986,7 @@ a {
 
 @media (max-width: 640px) {
     body {
-        padding: 16px;
+        padding: 0 16px 16px;
     }
 
     .page-section,
@@ -878,6 +998,8 @@ a {
     .section-panel__header,
     .detail-row,
     .detail-card-header,
+    .dashboard-highlight-card__header,
+    .workflow-summary-card__header,
     .group-accordion-trigger,
     .group-action-row {
         align-items: flex-start;
@@ -927,6 +1049,12 @@ a {
     .status-banner,
     .empty-state {
         padding-inline: 16px;
+    }
+
+    .dashboard-highlight-card,
+    .overview-callout-card,
+    .workflow-summary-card {
+        padding: 1.2rem 1rem;
     }
 
     .team-selection-list [data-slot="item"] {
