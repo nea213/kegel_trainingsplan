@@ -233,18 +233,17 @@ Datei: `src/views/club_detail.rs`
 
 ### Innerhalb einer Gruppe
 
-Pro Gruppe drei Teilbereiche:
+Pro Gruppe zwei direkt sichtbare Arbeitsbereiche:
 
 - `Trainer`
-- `Einladungen`
 - `Mannschaften`
 
-Diese Bereiche sollen nicht alle ungefragt voll offen sein.
+Einladungen gehoeren nicht in den Hauptfluss, sondern in eine bewusst zurueckhaltende Aktionsflaeche wie `Mehr Aktionen`.
 
 ### Bereich `Einladungen`
 
 - Vereinsweite Einladungen von gruppenbezogenen Einladungen sauber trennen.
-- Neue Codes in einer eigenen Aktionsflaeche erzeugen.
+- Neue Codes nur bei Bedarf ueber eine eigene Aktionsflaeche oder ein Aktionsmenue erzeugen.
 - Aktive Codes als kurze Liste mit:
   - Rolle
   - Gueltigkeit
@@ -520,28 +519,6 @@ Alle UI-Texte bleiben auf Deutsch.
 - statt `Aktuell ausgewählt` eher `Aktive Mannschaft`
 
 ## Konkrete Refactor-Phasen
-
-## Phase 2: Seitenlayout modernisieren
-
-Ziel: Ein konsistentes modernes Layoutsystem einfuehren.
-
-Umfang:
-
-- neue Seitenkoepfe
-- neue Kartenhierarchie
-- bessere Leere-, Lade- und Statuszustaende
-- mehr Einheitlichkeit zwischen `Dashboard`, `Clubs`, `ClubDetail`, `GroupDetail`
-
-## Phase 3: Mobile/App-Optimierung
-
-Ziel: dieselbe App-Logik sauber auf kleinen Screens abbilden.
-
-Umfang:
-
-- Sheets fuer Anlegen und Bearbeiten
-- bessere Touch-Abstaende
-- mobile Aktionsmuster
-- ggf. kompaktere Top-Bar oder spaetere Bottom-Navigation
 
 ## Phase 4: Interaktionsqualitaet
 
