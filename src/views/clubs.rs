@@ -6,6 +6,9 @@ use crate::components::ui::item::{
     Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemSeparator, ItemTitle,
 };
 use crate::components::ui::label::Label;
+use crate::components::ui::sheet::{
+    Sheet, SheetContentClose, SheetDescription, SheetHeader, SheetTitle,
+};
 use crate::components::{
     EmptyStatePanel, LoadingPanel, PageHeader, SectionPanel, StatusBanner, StatusBannerTone,
 };
@@ -26,6 +29,7 @@ pub fn Clubs() -> Element {
     let mut club_name = use_signal(String::new);
     let mut busy = use_signal(|| false);
     let mut status = use_signal(|| None::<(bool, String)>);
+    let mut create_sheet_open = use_signal(|| false);
 
     match user_state {
         None => rsx! {
@@ -60,14 +64,12 @@ pub fn Clubs() -> Element {
                         description: "Lege Vereine an und öffne anschließend deren Detailbereiche für Gruppen und Mannschaften.".to_string(),
                         eyebrow: Some("Administration".to_string()),
                         actions: Some(rsx! {
-                            Button {
-                                variant: ButtonVariant::Secondary,
-                                onclick: move |_| {
-                                    let _ = document::eval(
-                                        r#"document.getElementById("club-name")?.focus();"#
-                                    );
-                                },
-                                "Verein anlegen"
+                            div { class: "mobile-only",
+                                Button {
+                                    variant: ButtonVariant::Secondary,
+                                    onclick: move |_| create_sheet_open.set(true),
+                                    "Verein anlegen"
+                                }
                             }
                         }),
                     }
@@ -83,55 +85,93 @@ pub fn Clubs() -> Element {
                         }
                     }
 
-                    SectionPanel {
-                        title: "Neuen Verein erfassen".to_string(),
-                        description: "Der Verein erscheint direkt danach in der Übersicht und kann sofort weiter gepflegt werden.".to_string(),
-                        div { class: "section-stack",
-                            div { class: "auth-field",
-                                Label { html_for: "club-name", "Vereinsname" }
-                                Input {
-                                    id: "club-name",
-                                    value: club_name(),
-                                    placeholder: "z. B. KV Musterstadt",
-                                    disabled: busy(),
-                                    oninput: move |event: FormEvent| club_name.set(event.value()),
+                    div { class: "desktop-only",
+                        SectionPanel {
+                            title: "Neuen Verein erfassen".to_string(),
+                            description: "Der Verein erscheint direkt danach in der Übersicht und kann sofort weiter gepflegt werden.".to_string(),
+                            ClubCreateForm {
+                                club_name,
+                                busy,
+                                id_prefix: "club-desktop".to_string(),
+                                on_submit: move |_| {
+                                    if busy() {
+                                        return;
+                                    }
+
+                                    status.set(None);
+                                    let name = club_name();
+                                    spawn(async move {
+                                        busy.set(true);
+                                        let result = create_club(CreateClubInput { name }).await;
+                                        busy.set(false);
+
+                                        match result {
+                                            Ok(created_club) => {
+                                                club_name.set(String::new());
+                                                status.set(Some((
+                                                    true,
+                                                    format!("Verein '{}' wurde angelegt.", created_club.name),
+                                                )));
+                                                refresh.with_mut(|value| *value += 1);
+                                            }
+                                            Err(error) => {
+                                                status.set(Some((
+                                                    false,
+                                                    format!("Verein konnte nicht angelegt werden: {error}"),
+                                                )));
+                                            }
+                                        }
+                                    });
                                 }
                             }
-                            div { class: "section-actions",
-                                Button {
-                                    variant: ButtonVariant::Secondary,
-                                    disabled: busy(),
-                                    onclick: move |_| {
-                                        if busy() {
-                                            return;
-                                        }
+                        }
+                    }
 
-                                        status.set(None);
-                                        let name = club_name();
-                                        spawn(async move {
-                                            busy.set(true);
-                                            let result = create_club(CreateClubInput { name }).await;
-                                            busy.set(false);
+                    Sheet {
+                        open: create_sheet_open(),
+                        on_open_change: move |open| create_sheet_open.set(open),
+                        class: "mobile-form-sheet".to_string(),
+                        "data-side": "bottom",
+                        SheetContentClose {}
+                        SheetHeader {
+                            SheetTitle { "Verein anlegen" }
+                            SheetDescription { "Erfasse einen neuen Verein, ohne die Übersicht zu verlassen." }
+                        }
+                        div { class: "mobile-sheet-body",
+                            ClubCreateForm {
+                                club_name,
+                                busy,
+                                id_prefix: "club-sheet".to_string(),
+                                on_submit: move |_| {
+                                    if busy() {
+                                        return;
+                                    }
 
-                                            match result {
-                                                Ok(created_club) => {
-                                                    club_name.set(String::new());
-                                                    status.set(Some((
-                                                        true,
-                                                        format!("Verein '{}' wurde angelegt.", created_club.name),
-                                                    )));
-                                                    refresh.with_mut(|value| *value += 1);
-                                                }
-                                                Err(error) => {
-                                                    status.set(Some((
-                                                        false,
-                                                        format!("Verein konnte nicht angelegt werden: {error}"),
-                                                    )));
-                                                }
+                                    status.set(None);
+                                    let name = club_name();
+                                    spawn(async move {
+                                        busy.set(true);
+                                        let result = create_club(CreateClubInput { name }).await;
+                                        busy.set(false);
+
+                                        match result {
+                                            Ok(created_club) => {
+                                                club_name.set(String::new());
+                                                create_sheet_open.set(false);
+                                                status.set(Some((
+                                                    true,
+                                                    format!("Verein '{}' wurde angelegt.", created_club.name),
+                                                )));
+                                                refresh.with_mut(|value| *value += 1);
                                             }
-                                        });
-                                    },
-                                    {if busy() { "Speichert..." } else { "Verein anlegen" }}
+                                            Err(error) => {
+                                                status.set(Some((
+                                                    false,
+                                                    format!("Verein konnte nicht angelegt werden: {error}"),
+                                                )));
+                                            }
+                                        }
+                                    });
                                 }
                             }
                         }
@@ -181,6 +221,37 @@ pub fn Clubs() -> Element {
                 }
             }
         },
+    }
+}
+
+#[component]
+fn ClubCreateForm(
+    club_name: Signal<String>,
+    busy: Signal<bool>,
+    on_submit: EventHandler<()>,
+    #[props(default = "club".to_string())] id_prefix: String,
+) -> Element {
+    rsx! {
+        div { class: "section-stack mobile-form-stack",
+            div { class: "auth-field",
+                Label { html_for: format!("{id_prefix}-name"), "Vereinsname" }
+                Input {
+                    id: format!("{id_prefix}-name"),
+                    value: club_name(),
+                    placeholder: "z. B. KV Musterstadt",
+                    disabled: busy(),
+                    oninput: move |event: FormEvent| club_name.set(event.value()),
+                }
+            }
+            div { class: "section-actions mobile-form-actions",
+                Button {
+                    variant: ButtonVariant::Secondary,
+                    disabled: busy(),
+                    onclick: move |_| on_submit.call(()),
+                    {if busy() { "Speichert..." } else { "Verein anlegen" }}
+                }
+            }
+        }
     }
 }
 

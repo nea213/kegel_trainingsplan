@@ -8,6 +8,9 @@ use crate::components::ui::item::{
     Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemSeparator, ItemTitle,
 };
 use crate::components::ui::label::Label;
+use crate::components::ui::sheet::{
+    Sheet, SheetContentClose, SheetDescription, SheetHeader, SheetTitle,
+};
 use crate::components::ui::textarea::Textarea;
 use crate::components::{
     EmptyStatePanel, LoadingPanel, PageHeader, SectionPanel, StatusBanner, StatusBannerTone,
@@ -44,6 +47,7 @@ pub fn GroupDetail(group_id: i32) -> Element {
     let mut training_end_at = use_signal(String::new);
     let mut training_scope = use_signal(|| TrainingScopeSelection::WholeGroup);
     let mut creating_training = use_signal(|| false);
+    let mut training_sheet_open = use_signal(|| false);
 
     match context_state {
         None => rsx! {
@@ -176,9 +180,14 @@ pub fn GroupDetail(group_id: i32) -> Element {
 
                                                 rsx! {
                                                     ItemGroup {
+                                                        class: "team-selection-list",
                                                         for (index, team) in teams.into_iter().enumerate() {
                                                             Item {
-                                                                class: "content-list-item",
+                                                                class: if selected_team() == Some(team.id) {
+                                                                    "content-list-item team-selection-item team-selection-item--active"
+                                                                } else {
+                                                                    "content-list-item team-selection-item"
+                                                                },
                                                                 ItemContent {
                                                                     ItemTitle { "{team.name}" }
                                                                     ItemDescription {
@@ -313,158 +322,152 @@ pub fn GroupDetail(group_id: i32) -> Element {
                                 SectionPanel {
                                     title: "3. Training planen".to_string(),
                                     description: "Wähle bewusst, ob das Training für die ganze Gruppe oder für die aktive Mannschaft gedacht ist.".to_string(),
-                                    div { class: "section-stack",
-                                        div { class: "detail-card detail-card-muted",
-                                            p { class: "section-label", "Ziel des Trainings" }
-                                            div { class: "section-actions",
-                                                Button {
-                                                    variant: if training_scope() == TrainingScopeSelection::WholeGroup {
-                                                        ButtonVariant::Secondary
-                                                    } else {
-                                                        ButtonVariant::Outline
-                                                    },
-                                                    onclick: move |_| training_scope.set(TrainingScopeSelection::WholeGroup),
-                                                    "Ganze Gruppe"
-                                                }
-                                                Button {
-                                                    variant: if training_scope() == TrainingScopeSelection::ActiveTeam {
-                                                        ButtonVariant::Secondary
-                                                    } else {
-                                                        ButtonVariant::Outline
-                                                    },
-                                                    disabled: active_team_name.is_none(),
-                                                    onclick: move |_| training_scope.set(TrainingScopeSelection::ActiveTeam),
-                                                    "Aktive Mannschaft"
-                                                }
-                                            }
-                                            p { class: "section-meta",
-                                                {
-                                                    match training_scope() {
-                                                        TrainingScopeSelection::WholeGroup => {
-                                                            "Das Training wird für die gesamte Gruppe angelegt.".to_string()
-                                                        }
-                                                        TrainingScopeSelection::ActiveTeam => {
-                                                            format!(
-                                                                "Das Training wird für {} angelegt.",
-                                                                active_team_name.clone().unwrap_or_else(|| "die aktive Mannschaft".to_string())
-                                                            )
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-
-                                        div { class: "form-grid",
-                                            div { class: "auth-field",
-                                                Label { html_for: "training-title", "Titel" }
-                                                Input {
-                                                    id: "training-title",
-                                                    value: training_title(),
-                                                    placeholder: "z. B. Techniktraining",
-                                                    disabled: creating_training(),
-                                                    oninput: move |event: FormEvent| training_title.set(event.value()),
-                                                }
-                                            }
-                                            div { class: "auth-field",
-                                                Label { html_for: "training-location", "Ort" }
-                                                Input {
-                                                    id: "training-location",
-                                                    value: training_location(),
-                                                    placeholder: "z. B. Vereinsheim Bahn 1-4",
-                                                    disabled: creating_training(),
-                                                    oninput: move |event: FormEvent| training_location.set(event.value()),
-                                                }
-                                            }
-                                            div { class: "form-grid-2",
-                                                div { class: "auth-field",
-                                                    Label { html_for: "training-start-at", "Start" }
-                                                    Input {
-                                                        id: "training-start-at",
-                                                        r#type: "datetime-local",
-                                                        value: training_start_at(),
-                                                        disabled: creating_training(),
-                                                        oninput: move |event: FormEvent| training_start_at.set(event.value()),
-                                                    }
-                                                }
-                                                div { class: "auth-field",
-                                                    Label { html_for: "training-end-at", "Ende" }
-                                                    Input {
-                                                        id: "training-end-at",
-                                                        r#type: "datetime-local",
-                                                        value: training_end_at(),
-                                                        disabled: creating_training(),
-                                                        oninput: move |event: FormEvent| training_end_at.set(event.value()),
-                                                    }
-                                                }
-                                            }
-                                            div { class: "auth-field",
-                                                Label { html_for: "training-description", "Beschreibung" }
-                                                Textarea {
-                                                    id: "training-description",
-                                                    value: training_description(),
-                                                    rows: "4",
-                                                    placeholder: "Fokus, Ablauf oder Hinweise für das Training",
-                                                    disabled: creating_training(),
-                                                    oninput: move |event: FormEvent| training_description.set(event.value()),
-                                                }
-                                            }
-                                        }
-
-                                        div { class: "section-actions",
+                                    actions: Some(rsx! {
+                                        div { class: "mobile-only",
                                             Button {
                                                 variant: ButtonVariant::Secondary,
-                                                disabled: creating_training() || !active_team_ready,
-                                                onclick: move |_| {
-                                                    if creating_training() {
-                                                        return;
+                                                onclick: move |_| training_sheet_open.set(true),
+                                                "Training planen"
+                                            }
+                                        }
+                                    }),
+                                    div { class: "desktop-only",
+                                        TrainingPlanningForm {
+                                            active_team_name: active_team_name.clone(),
+                                            active_team_ready,
+                                            training_scope,
+                                            training_title,
+                                            training_description,
+                                            training_location,
+                                            training_start_at,
+                                            training_end_at,
+                                            creating_training,
+                                            on_submit: move |_| {
+                                                if creating_training() {
+                                                    return;
+                                                }
+
+                                                let team_id = match training_scope() {
+                                                    TrainingScopeSelection::WholeGroup => None,
+                                                    TrainingScopeSelection::ActiveTeam => {
+                                                        let Some(team_id) = selected_team() else {
+                                                            status.set(Some((false, "Wähle zuerst eine aktive Mannschaft aus.".to_string())));
+                                                            return;
+                                                        };
+                                                        Some(team_id)
                                                     }
+                                                };
 
-                                                    let team_id = match training_scope() {
-                                                        TrainingScopeSelection::WholeGroup => None,
-                                                        TrainingScopeSelection::ActiveTeam => {
-                                                            let Some(team_id) = selected_team() else {
-                                                                status.set(Some((false, "Wähle zuerst eine aktive Mannschaft aus.".to_string())));
-                                                                return;
-                                                            };
-                                                            Some(team_id)
+                                                status.set(None);
+                                                let input = CreateTrainingSessionInput {
+                                                    club_id: group.club_id,
+                                                    group_id,
+                                                    team_id,
+                                                    title: training_title(),
+                                                    description: training_description(),
+                                                    location: training_location(),
+                                                    start_at: training_start_at(),
+                                                    end_at: training_end_at(),
+                                                };
+
+                                                spawn(async move {
+                                                    creating_training.set(true);
+                                                    let result = create_training_session(input).await;
+                                                    creating_training.set(false);
+
+                                                    match result {
+                                                        Ok(created_training) => {
+                                                            training_title.set(String::new());
+                                                            training_description.set(String::new());
+                                                            training_location.set(String::new());
+                                                            training_start_at.set(String::new());
+                                                            training_end_at.set(String::new());
+                                                            training_scope.set(TrainingScopeSelection::WholeGroup);
+                                                            status.set(Some((true, format!("Training '{}' wurde angelegt.", created_training.title))));
+                                                            refresh.with_mut(|value| *value += 1);
                                                         }
-                                                    };
-
-                                                    status.set(None);
-                                                    let input = CreateTrainingSessionInput {
-                                                        club_id: group.club_id,
-                                                        group_id,
-                                                        team_id,
-                                                        title: training_title(),
-                                                        description: training_description(),
-                                                        location: training_location(),
-                                                        start_at: training_start_at(),
-                                                        end_at: training_end_at(),
-                                                    };
-
-                                                    spawn(async move {
-                                                        creating_training.set(true);
-                                                        let result = create_training_session(input).await;
-                                                        creating_training.set(false);
-
-                                                        match result {
-                                                            Ok(created_training) => {
-                                                                training_title.set(String::new());
-                                                                training_description.set(String::new());
-                                                                training_location.set(String::new());
-                                                                training_start_at.set(String::new());
-                                                                training_end_at.set(String::new());
-                                                                training_scope.set(TrainingScopeSelection::WholeGroup);
-                                                                status.set(Some((true, format!("Training '{}' wurde angelegt.", created_training.title))));
-                                                                refresh.with_mut(|value| *value += 1);
-                                                            }
-                                                            Err(error) => {
-                                                                status.set(Some((false, format!("Training konnte nicht angelegt werden: {error}"))));
-                                                            }
+                                                        Err(error) => {
+                                                            status.set(Some((false, format!("Training konnte nicht angelegt werden: {error}"))));
                                                         }
-                                                    });
-                                                },
-                                                {if creating_training() { "Speichert..." } else { "Training anlegen" }}
+                                                    }
+                                                });
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Sheet {
+                                    open: training_sheet_open(),
+                                    on_open_change: move |open| training_sheet_open.set(open),
+                                    class: "mobile-form-sheet".to_string(),
+                                    "data-side": "bottom",
+                                    SheetContentClose {}
+                                    SheetHeader {
+                                        SheetTitle { "Training planen" }
+                                        SheetDescription { "Lege ein Training für die ganze Gruppe oder die aktive Mannschaft an." }
+                                    }
+                                    div { class: "mobile-sheet-body",
+                                        TrainingPlanningForm {
+                                            active_team_name: active_team_name.clone(),
+                                            active_team_ready,
+                                            training_scope,
+                                            training_title,
+                                            training_description,
+                                            training_location,
+                                            training_start_at,
+                                            training_end_at,
+                                            creating_training,
+                                            id_prefix: "sheet".to_string(),
+                                            on_submit: move |_| {
+                                                if creating_training() {
+                                                    return;
+                                                }
+
+                                                let team_id = match training_scope() {
+                                                    TrainingScopeSelection::WholeGroup => None,
+                                                    TrainingScopeSelection::ActiveTeam => {
+                                                        let Some(team_id) = selected_team() else {
+                                                            status.set(Some((false, "Wähle zuerst eine aktive Mannschaft aus.".to_string())));
+                                                            return;
+                                                        };
+                                                        Some(team_id)
+                                                    }
+                                                };
+
+                                                status.set(None);
+                                                let input = CreateTrainingSessionInput {
+                                                    club_id: group.club_id,
+                                                    group_id,
+                                                    team_id,
+                                                    title: training_title(),
+                                                    description: training_description(),
+                                                    location: training_location(),
+                                                    start_at: training_start_at(),
+                                                    end_at: training_end_at(),
+                                                };
+
+                                                spawn(async move {
+                                                    creating_training.set(true);
+                                                    let result = create_training_session(input).await;
+                                                    creating_training.set(false);
+
+                                                    match result {
+                                                        Ok(created_training) => {
+                                                            training_title.set(String::new());
+                                                            training_description.set(String::new());
+                                                            training_location.set(String::new());
+                                                            training_start_at.set(String::new());
+                                                            training_end_at.set(String::new());
+                                                            training_scope.set(TrainingScopeSelection::WholeGroup);
+                                                            training_sheet_open.set(false);
+                                                            status.set(Some((true, format!("Training '{}' wurde angelegt.", created_training.title))));
+                                                            refresh.with_mut(|value| *value += 1);
+                                                        }
+                                                        Err(error) => {
+                                                            status.set(Some((false, format!("Training konnte nicht angelegt werden: {error}"))));
+                                                        }
+                                                    }
+                                                });
                                             }
                                         }
                                     }
@@ -539,6 +542,130 @@ pub fn GroupDetail(group_id: i32) -> Element {
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+#[component]
+fn TrainingPlanningForm(
+    active_team_name: Option<String>,
+    active_team_ready: bool,
+    training_scope: Signal<TrainingScopeSelection>,
+    training_title: Signal<String>,
+    training_description: Signal<String>,
+    training_location: Signal<String>,
+    training_start_at: Signal<String>,
+    training_end_at: Signal<String>,
+    creating_training: Signal<bool>,
+    on_submit: EventHandler<()>,
+    #[props(default = "desktop".to_string())] id_prefix: String,
+) -> Element {
+    rsx! {
+        div { class: "section-stack mobile-form-stack",
+            div { class: "detail-card detail-card-muted",
+                p { class: "section-label", "Ziel des Trainings" }
+                div { class: "section-actions mobile-selection-actions",
+                    Button {
+                        variant: if training_scope() == TrainingScopeSelection::WholeGroup {
+                            ButtonVariant::Secondary
+                        } else {
+                            ButtonVariant::Outline
+                        },
+                        onclick: move |_| training_scope.set(TrainingScopeSelection::WholeGroup),
+                        "Ganze Gruppe"
+                    }
+                    Button {
+                        variant: if training_scope() == TrainingScopeSelection::ActiveTeam {
+                            ButtonVariant::Secondary
+                        } else {
+                            ButtonVariant::Outline
+                        },
+                        disabled: active_team_name.is_none(),
+                        onclick: move |_| training_scope.set(TrainingScopeSelection::ActiveTeam),
+                        "Aktive Mannschaft"
+                    }
+                }
+                p { class: "section-meta",
+                    {
+                        match training_scope() {
+                            TrainingScopeSelection::WholeGroup => {
+                                "Das Training wird für die gesamte Gruppe angelegt.".to_string()
+                            }
+                            TrainingScopeSelection::ActiveTeam => {
+                                format!(
+                                    "Das Training wird für {} angelegt.",
+                                    active_team_name.clone().unwrap_or_else(|| "die aktive Mannschaft".to_string())
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            div { class: "form-grid",
+                div { class: "auth-field",
+                    Label { html_for: format!("{id_prefix}-training-title"), "Titel" }
+                    Input {
+                        id: format!("{id_prefix}-training-title"),
+                        value: training_title(),
+                        placeholder: "z. B. Techniktraining",
+                        disabled: creating_training(),
+                        oninput: move |event: FormEvent| training_title.set(event.value()),
+                    }
+                }
+                div { class: "auth-field",
+                    Label { html_for: format!("{id_prefix}-training-location"), "Ort" }
+                    Input {
+                        id: format!("{id_prefix}-training-location"),
+                        value: training_location(),
+                        placeholder: "z. B. Vereinsheim Bahn 1-4",
+                        disabled: creating_training(),
+                        oninput: move |event: FormEvent| training_location.set(event.value()),
+                    }
+                }
+                div { class: "form-grid-2" ,
+                    div { class: "auth-field",
+                        Label { html_for: format!("{id_prefix}-training-start-at"), "Start" }
+                        Input {
+                            id: format!("{id_prefix}-training-start-at"),
+                            r#type: "datetime-local",
+                            value: training_start_at(),
+                            disabled: creating_training(),
+                            oninput: move |event: FormEvent| training_start_at.set(event.value()),
+                        }
+                    }
+                    div { class: "auth-field",
+                        Label { html_for: format!("{id_prefix}-training-end-at"), "Ende" }
+                        Input {
+                            id: format!("{id_prefix}-training-end-at"),
+                            r#type: "datetime-local",
+                            value: training_end_at(),
+                            disabled: creating_training(),
+                            oninput: move |event: FormEvent| training_end_at.set(event.value()),
+                        }
+                    }
+                }
+                div { class: "auth-field",
+                    Label { html_for: format!("{id_prefix}-training-description"), "Beschreibung" }
+                    Textarea {
+                        id: format!("{id_prefix}-training-description"),
+                        value: training_description(),
+                        rows: "4",
+                        placeholder: "Fokus, Ablauf oder Hinweise für das Training",
+                        disabled: creating_training(),
+                        oninput: move |event: FormEvent| training_description.set(event.value()),
+                    }
+                }
+            }
+
+            div { class: "section-actions mobile-form-actions",
+                Button {
+                    variant: ButtonVariant::Secondary,
+                    disabled: creating_training() || !active_team_ready,
+                    onclick: move |_| on_submit.call(()),
+                    {if creating_training() { "Speichert..." } else { "Training anlegen" }}
                 }
             }
         }

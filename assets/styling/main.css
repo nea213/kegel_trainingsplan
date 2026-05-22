@@ -669,6 +669,45 @@ a {
     background: color-mix(in srgb, var(--muted) 72%, var(--background) 28%);
 }
 
+.club-actions-menu,
+.group-actions-menu {
+    display: inline-flex;
+}
+
+.club-actions-menu__content {
+    min-width: 260px;
+}
+
+.menu-item-copy {
+    display: grid;
+    gap: 2px;
+}
+
+.menu-item-title {
+    color: var(--foreground);
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.menu-item-description {
+    color: var(--muted-foreground);
+    font-size: 0.79rem;
+    line-height: 1.4;
+}
+
+.group-action-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.group-action-row__copy {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+}
+
 .detail-section-trigger {
     width: 100%;
     justify-content: space-between;
@@ -768,6 +807,51 @@ a {
     opacity: 1;
 }
 
+.desktop-only {
+    display: block;
+}
+
+.mobile-only {
+    display: none;
+}
+
+.mobile-form-sheet[data-slot="sheet-content"] {
+    width: min(100%, 42rem);
+}
+
+.mobile-sheet-body {
+    display: grid;
+    gap: 18px;
+    padding: 0 1.25rem 1.25rem;
+}
+
+.mobile-form-stack {
+    gap: 18px;
+}
+
+.mobile-form-actions > [data-slot="button"] {
+    min-width: min(100%, 16rem);
+}
+
+.mobile-selection-actions > [data-slot="button"] {
+    min-height: 2.9rem;
+}
+
+.team-selection-list [data-slot="item-actions"] {
+    align-self: stretch;
+}
+
+.team-selection-item {
+    border-color: var(--border);
+    background: color-mix(in oklab, var(--card) 92%, var(--muted) 8%);
+}
+
+.team-selection-item--active {
+    border-color: color-mix(in oklab, var(--ring) 34%, var(--border));
+    background: color-mix(in oklab, var(--ring) 8%, var(--card));
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--ring) 16%, transparent);
+}
+
 @media (max-width: 900px) {
     .workflow-grid {
         grid-template-columns: 1fr;
@@ -788,7 +872,8 @@ a {
     .section-panel__header,
     .detail-row,
     .detail-card-header,
-    .group-accordion-trigger {
+    .group-accordion-trigger,
+    .group-action-row {
         align-items: flex-start;
         flex-direction: column;
     }
@@ -805,9 +890,78 @@ a {
     .page-header__actions,
     .section-panel__actions {
         justify-content: flex-start;
+        width: 100%;
     }
 
     .group-accordion-stats {
         justify-content: flex-start;
+    }
+
+    .desktop-only {
+        display: none !important;
+    }
+
+    .mobile-only {
+        display: block !important;
+    }
+
+    .mobile-only [data-slot="button"],
+    .section-actions > [data-slot="button"],
+    .detail-row > [data-slot="button"],
+    .detail-card [data-slot="item-actions"] > [data-slot="button"] {
+        width: 100%;
+    }
+
+    .mobile-sheet-body {
+        padding-bottom: 1.5rem;
+    }
+
+    .detail-row,
+    .detail-card,
+    .status-banner,
+    .empty-state {
+        padding-inline: 16px;
+    }
+
+    .team-selection-list [data-slot="item"] {
+        padding: 16px;
+    }
+
+    .team-selection-list [data-slot="item-actions"] {
+        width: 100%;
+    }
+
+    .team-selection-list [data-slot="item-actions"] [data-slot="button"] {
+        width: 100%;
+    }
+
+    .club-detail-tabs [data-slot="tabs-list"] {
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(140px, 1fr);
+        overflow-x: auto;
+        width: 100%;
+        padding-bottom: 2px;
+    }
+
+    .club-detail-tabs [data-slot="tabs-content"] {
+        padding: 1.25rem;
+    }
+
+    .section-actions {
+        display: grid;
+    }
+
+    .group-summary-pill {
+        padding: 8px 12px;
+    }
+
+    .group-action-row > * {
+        width: 100%;
+    }
+
+    .club-actions-menu,
+    .group-actions-menu {
+        width: 100%;
     }
 }
