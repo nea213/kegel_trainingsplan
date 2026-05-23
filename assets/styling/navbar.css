@@ -89,6 +89,7 @@
   background: transparent;
   color: inherit;
   cursor: pointer;
+  border-radius: calc(var(--radius-lg) + 4px);
 }
 
 .nav-user-menu-trigger:focus-visible {
@@ -96,47 +97,133 @@
 }
 
 .nav-user {
+  --nav-user-surface: color-mix(in oklab, var(--background) 86%, white 14%);
+  --nav-user-border: color-mix(in oklab, var(--border) 78%, white 22%);
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   min-height: 3.2rem;
-  padding: 10px 13px;
-  border: 1px solid color-mix(in oklab, var(--border) 88%, transparent);
-  border-radius: calc(var(--radius-lg) + 2px);
-  background: color-mix(in oklab, var(--background) 90%, white 10%);
-  box-shadow: var(--shadow-xs);
-  transition: border-color 150ms ease, transform 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+  padding: 0.7rem 0.85rem 0.7rem 0.75rem;
+  border: 1px solid var(--nav-user-border);
+  border-radius: calc(var(--radius-xl) + 2px);
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--nav-user-surface) 92%, white 8%), color-mix(in oklab, var(--nav-user-surface) 92%, var(--muted) 8%));
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.65) inset,
+    0 10px 24px rgba(15, 23, 42, 0.08);
+  transition:
+    border-color 180ms ease,
+    transform 180ms ease,
+    background-color 180ms ease,
+    box-shadow 180ms ease;
 }
 
 .nav-user-menu-trigger:hover .nav-user,
-.nav-user-menu-trigger:focus-visible .nav-user {
-  border-color: var(--ring);
-  background: var(--muted);
-  box-shadow: var(--shadow-sm);
+.nav-user-menu-trigger:focus-visible .nav-user,
+.nav-user-menu-trigger[data-state="open"] .nav-user {
+  border-color: color-mix(in oklab, var(--ring) 42%, var(--nav-user-border));
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--nav-user-surface) 76%, white 24%), color-mix(in oklab, var(--nav-user-surface) 84%, var(--muted) 16%));
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.7) inset,
+    0 14px 28px rgba(15, 23, 42, 0.12);
   transform: translateY(-1px);
+}
+
+.nav-user-menu-trigger:focus-visible .nav-user {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.7) inset,
+    0 14px 28px rgba(15, 23, 42, 0.12),
+    0 0 0 3px color-mix(in oklab, var(--ring) 24%, transparent);
+}
+
+.nav-user-menu-trigger:active .nav-user {
+  transform: translateY(0);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.55) inset,
+    0 8px 18px rgba(15, 23, 42, 0.1);
+}
+
+.nav-user .dx-avatar {
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--border) 52%, transparent);
+}
+
+.nav-user .dx-avatar-fallback {
+  background:
+    linear-gradient(135deg, color-mix(in oklab, var(--primary) 82%, white 18%), color-mix(in oklab, var(--primary) 66%, var(--foreground) 34%));
+  color: var(--primary-foreground);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
 }
 
 .nav-user-copy {
   display: flex;
   min-width: 0;
+  flex: 1;
   flex-direction: column;
   align-items: flex-start;
-  gap: 2px;
+  gap: 3px;
 }
 
 .nav-user-kicker {
   color: var(--muted-foreground);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   min-width: 0;
+  opacity: 0.92;
 }
 
 .nav-user-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 0.95rem;
-  font-weight: 600;
+  font-weight: 650;
   color: var(--foreground);
+}
+
+.nav-user-chevron {
+  position: relative;
+  width: 0.9rem;
+  height: 0.9rem;
+  flex-shrink: 0;
+  color: color-mix(in oklab, var(--muted-foreground) 80%, var(--foreground) 20%);
+  transition: transform 180ms ease, color 180ms ease;
+}
+
+.nav-user-chevron::before,
+.nav-user-chevron::after {
+  content: "";
+  position: absolute;
+  top: 48%;
+  width: 0.42rem;
+  height: 1.5px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.nav-user-chevron::before {
+  left: 0.08rem;
+  transform: rotate(40deg);
+}
+
+.nav-user-chevron::after {
+  right: 0.08rem;
+  transform: rotate(-40deg);
+}
+
+.nav-user-menu-trigger:hover .nav-user-chevron,
+.nav-user-menu-trigger:focus-visible .nav-user-chevron,
+.nav-user-menu-trigger[data-state="open"] .nav-user-chevron {
+  color: var(--foreground);
+}
+
+.nav-user-menu-trigger[data-state="open"] .nav-user-chevron {
+  transform: rotate(180deg);
 }
 
 .dx-dropdown-menu-content.nav-user-menu {
@@ -146,58 +233,79 @@
   width: min(300px, calc(100dvw - 24px));
   min-width: 0;
   max-width: calc(100dvw - 24px);
-  padding: 0.5rem;
-  border: 1px solid color-mix(in oklab, var(--border) 88%, transparent);
-  border-radius: calc(var(--radius-xl) + 2px);
-  background: var(--popover);
-  box-shadow: var(--shadow-lg);
+  margin-top: 0.45rem;
+  padding: 0.55rem;
+  border: 1px solid color-mix(in oklab, var(--border) 76%, white 24%);
+  border-radius: calc(var(--radius-xl) + 4px);
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--popover) 96%, white 4%), color-mix(in oklab, var(--popover) 94%, var(--muted) 6%));
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.72) inset,
+    0 24px 48px rgba(15, 23, 42, 0.16);
 }
 
 .nav-user-menu-header {
   display: grid;
-  gap: 4px;
+  gap: 0.25rem;
   min-width: 0;
-  padding: 0.6rem 0.7rem 0.35rem;
+  padding: 0.7rem 0.8rem 0.45rem;
 }
 
 .nav-user-menu-title {
   overflow-wrap: anywhere;
-  font-size: 0.95rem;
-  font-weight: 600;
+  font-size: 0.98rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
   color: var(--popover-foreground);
 }
 
 .nav-user-menu-subtitle {
   overflow-wrap: anywhere;
-  font-size: 0.82rem;
-  color: var(--muted-foreground);
+  font-size: 0.79rem;
+  color: color-mix(in oklab, var(--muted-foreground) 88%, var(--foreground) 12%);
+  line-height: 1.45;
 }
 
 .nav-user-menu-section-label {
-  padding: 0.3rem 0.75rem 0.2rem;
+  padding: 0.45rem 0.8rem 0.25rem;
   color: var(--muted-foreground);
-  font-size: 0.76rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
 }
 
 .nav-user-menu-separator {
-  margin: 0.35rem 0;
+  margin: 0.4rem 0;
 }
 
 .nav-user-menu-item-copy {
   display: grid;
-  gap: 2px;
+  gap: 0.2rem;
   min-width: 0;
   flex: 1;
+}
+
+.nav-user-menu .dx-dropdown-menu-item {
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.7rem 0.8rem;
+  border-radius: calc(var(--radius-md) + 2px);
+  transition: background-color 150ms ease, color 150ms ease, transform 150ms ease;
+}
+
+.nav-user-menu .dx-dropdown-menu-item:hover:not([data-disabled="true"]),
+.nav-user-menu .dx-dropdown-menu-item:focus-visible {
+  background: color-mix(in oklab, var(--accent) 78%, white 22%);
+  color: var(--accent-foreground);
+  transform: translateX(1px);
 }
 
 .nav-user-menu-item-title {
   overflow-wrap: anywhere;
   color: var(--foreground);
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 650;
 }
 
 .nav-user-menu-item-description {
@@ -207,15 +315,38 @@
   line-height: 1.4;
 }
 
+.nav-user-menu-item-state {
+  align-self: center;
+  padding: 0.22rem 0.5rem;
+  border: 1px solid color-mix(in oklab, var(--ring) 20%, transparent);
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--ring) 12%, var(--background));
+  color: color-mix(in oklab, var(--foreground) 82%, var(--ring) 18%);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
 .nav-user-menu-logout {
   width: 100%;
   justify-content: flex-start;
-  margin-top: 0.15rem;
+  min-height: 2.4rem;
+  margin-top: 0.2rem;
+  padding-inline: 0.8rem;
+  border-radius: calc(var(--radius-md) + 2px);
+}
+
+.nav-user-menu-logout:not(:disabled):hover,
+.nav-user-menu-logout:focus-visible {
+  background: color-mix(in oklab, var(--destructive) 10%, var(--muted));
+  color: var(--destructive);
 }
 
 .nav-user-menu-error {
-  margin: 0.35rem 0 0;
-  padding: 0.2rem 0.5rem 0.1rem;
+  margin: 0.45rem 0 0;
+  padding: 0.45rem 0.7rem 0.25rem;
   color: var(--destructive);
   font-size: 0.8rem;
   line-height: 1.45;
@@ -270,7 +401,7 @@
   .nav-user {
     width: 100%;
     justify-content: space-between;
-    padding: 10px 12px;
+    padding: 0.72rem 0.8rem 0.72rem 0.72rem;
   }
 }
 

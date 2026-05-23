@@ -139,6 +139,7 @@ fn UserMenu(user: PublicUser) -> Element {
                                 span { class: "nav-user-kicker", "Angemeldet" }
                                 span { class: "nav-user-name", "{trigger_username}" }
                             }
+                            span { class: "nav-user-chevron", aria_hidden: "true" }
                         }
                     }
                 },
@@ -192,7 +193,7 @@ fn UserMenu(user: PublicUser) -> Element {
                             span { class: "nav-user-menu-item-description", "{option.description()}" }
                         }
                         if option == active_theme {
-                            span { class: "nav-user-menu-item-description", "Aktuell" }
+                            span { class: "nav-user-menu-item-state", "Aktuell" }
                         }
                     }
                 }
