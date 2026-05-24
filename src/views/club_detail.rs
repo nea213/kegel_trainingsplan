@@ -29,10 +29,10 @@ use crate::invitations::{
 };
 use crate::team_players::{assign_team_player, remove_team_player, AssignTeamPlayerInput};
 use crate::teams::{create_team, CreateTeamInput};
-use crate::training::format_timestamp_label;
 use dioxus::prelude::*;
 use dioxus_primitives::toast::use_toast;
 use std::collections::HashMap;
+use time::{Month, OffsetDateTime};
 
 #[component]
 pub fn ClubDetail(club_id: i32) -> Element {
@@ -1746,5 +1746,37 @@ fn role_label(role: InvitationRole) -> &'static str {
     match role {
         InvitationRole::Trainer => "Trainer",
         InvitationRole::Player => "Spieler",
+    }
+}
+
+fn format_timestamp_label(timestamp: i64) -> String {
+    let Ok(date_time) = OffsetDateTime::from_unix_timestamp(timestamp) else {
+        return "Unbekannte Zeit".to_string();
+    };
+
+    format!(
+        "{:02}.{:02}.{} {:02}:{:02}",
+        date_time.day(),
+        month_number(date_time.month()),
+        date_time.year(),
+        date_time.hour(),
+        date_time.minute(),
+    )
+}
+
+fn month_number(month: Month) -> u8 {
+    match month {
+        Month::January => 1,
+        Month::February => 2,
+        Month::March => 3,
+        Month::April => 4,
+        Month::May => 5,
+        Month::June => 6,
+        Month::July => 7,
+        Month::August => 8,
+        Month::September => 9,
+        Month::October => 10,
+        Month::November => 11,
+        Month::December => 12,
     }
 }

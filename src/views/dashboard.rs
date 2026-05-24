@@ -1,5 +1,5 @@
-use crate::components::ui::button::{Button, ButtonVariant};
 use crate::components::ui::badge::{Badge, BadgeVariant};
+use crate::components::ui::button::{Button, ButtonVariant};
 use crate::components::ui::item::{
     Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemSeparator, ItemTitle,
 };
@@ -8,16 +8,13 @@ use crate::components::{
     StatusBannerTone,
 };
 use crate::dashboard::get_dashboard_context;
-use crate::training::{format_training_range, list_my_training_sessions, training_scope_label};
 use crate::Route;
 use dioxus::prelude::*;
 
 #[component]
 pub fn Dashboard() -> Element {
     let context_resource = use_server_future(move || async move { get_dashboard_context().await })?;
-    let training_resource = use_server_future(move || async move { list_my_training_sessions().await })?;
     let context_state = context_resource.read().as_ref().cloned();
-    let training_state = training_resource.read().as_ref().cloned();
     let nav = navigator();
 
     match context_state {
@@ -51,10 +48,6 @@ pub fn Dashboard() -> Element {
             let team_count = assigned_teams.len();
             let waiting_clubs = context.awaiting_assignment_clubs.clone();
             let waiting_count = waiting_clubs.len();
-            let upcoming_training_count = match &training_state {
-                Some(Ok(trainings)) => trainings.len(),
-                _ => 0,
-            };
             let primary_title = if context.user.is_system_admin {
                 "Verwalten, zuweisen und Überblick behalten"
             } else {
@@ -139,7 +132,7 @@ pub fn Dashboard() -> Element {
                                         if context.user.is_system_admin {
                                             "Öffne die Vereinsverwaltung, um Strukturen zu ergänzen, Codes zu erstellen oder offene Zuweisungen vorzubereiten."
                                         } else {
-                                            "Starte mit deinen Gruppen, prüfe Mannschaften und plane danach die nächsten Trainings."
+                                            "Starte mit deinen Gruppen, prüfe Mannschaften und organisiere danach die nächsten Schritte im Team."
                                         }
                                     }
                                 }
@@ -155,17 +148,12 @@ pub fn Dashboard() -> Element {
                             MetricCard {
                                 label: "Zugewiesene Mannschaften".to_string(),
                                 value: team_count.to_string(),
-                                detail: Some("Aktuell für Trainings und Organisation aktiv.".to_string()),
+                                detail: Some("Aktuell für Organisation und Betreuung aktiv.".to_string()),
                             }
                             MetricCard {
                                 label: "Wartende Vereine".to_string(),
                                 value: waiting_count.to_string(),
                                 detail: Some("Dort fehlt noch eine nächste Verwaltungsaktion.".to_string()),
-                            }
-                            MetricCard {
-                                label: "Kommende Trainings".to_string(),
-                                value: upcoming_training_count.to_string(),
-                                detail: Some("Die nächsten relevanten Termine im Blick.".to_string()),
                             }
                         }
 
@@ -206,7 +194,7 @@ pub fn Dashboard() -> Element {
                                 description: "Hier erscheinen alle Gruppen, die du betreust.".to_string(),
                                 EmptyStatePanel {
                                     title: "Noch keine Gruppe verfügbar".to_string(),
-                                    message: "Sobald dir eine Gruppe zugewiesen wurde, kannst du hier direkt mit Mannschaften, Zuweisungen und Trainings starten.".to_string(),
+                                    message: "Sobald dir eine Gruppe zugewiesen wurde, kannst du hier direkt mit Mannschaften und Zuweisungen starten.".to_string(),
                                 }
                             }
                         }
@@ -214,14 +202,14 @@ pub fn Dashboard() -> Element {
                         if team_count > 0 {
                             SectionPanel {
                                 title: "Meine Mannschaften".to_string(),
-                                description: "Diese Mannschaften stehen dir aktuell für Organisation und Trainingsplanung zur Verfügung.".to_string(),
+                                description: "Diese Mannschaften stehen dir aktuell für Organisation und Betreuung zur Verfügung.".to_string(),
                                 ItemGroup {
                                     for (index, team) in assigned_teams.into_iter().enumerate() {
                                         Item {
                                             class: "content-list-item actionable-list-item",
                                             ItemContent {
                                                 ItemTitle { "{team.name}" }
-                                                ItemDescription { "Für Training und Organisation verfügbar" }
+                                                ItemDescription { "Für Organisation und Betreuung verfügbar" }
                                                 div { class: "detail-badges",
                                                     Badge { variant: BadgeVariant::Outline, "Mannschaft aktiv" }
                                                 }
@@ -249,69 +237,6 @@ pub fn Dashboard() -> Element {
                                     }
                                 }
                             }
-                        }
-
-                        match training_state {
-                            None => rsx! {
-                                LoadingPanel {
-                                    title: "Kommende Trainings".to_string(),
-                                    lines: 4,
-                                }
-                            },
-                            Some(Err(error)) => rsx! {
-                                SectionPanel {
-                                    title: "Kommende Trainings".to_string(),
-                                    description: "Die nächsten relevanten Termine für deine Gruppen und Mannschaften.".to_string(),
-                                    StatusBanner {
-                                        tone: StatusBannerTone::Error,
-                                        title: Some("Trainings konnten nicht geladen werden".to_string()),
-                                        message: error.to_string(),
-                                    }
-                                }
-                            },
-                            Some(Ok(trainings)) if trainings.is_empty() => rsx! {
-                                SectionPanel {
-                                    title: "Kommende Trainings".to_string(),
-                                    description: "Die nächsten relevanten Termine für deine Gruppen und Mannschaften.".to_string(),
-                                    EmptyStatePanel {
-                                        title: "Keine Trainings geplant".to_string(),
-                                        message: "Aktuell sind für dich keine relevanten Trainings angelegt.".to_string(),
-                                    }
-                                }
-                            },
-                            Some(Ok(trainings)) => {
-                                let training_count = trainings.len();
-
-                                rsx! {
-                                    SectionPanel {
-                                        title: "Kommende Trainings".to_string(),
-                                        description: "Die nächsten relevanten Termine für deine Gruppen und Mannschaften.".to_string(),
-                                        ItemGroup {
-                                            for (index, training) in trainings.into_iter().enumerate() {
-                                                Item {
-                                                    class: "content-list-item training-list-item",
-                                                    ItemContent {
-                                                        ItemTitle { "{training.title}" }
-                                                        div { class: "detail-badges",
-                                                            Badge { variant: BadgeVariant::Secondary, "{training_scope_label(&training)}" }
-                                                            Badge { variant: BadgeVariant::Outline, "{training.club_name}" }
-                                                        }
-                                                        ItemDescription {
-                                                            "{format_training_range(training.start_at, training.end_at)}"
-                                                        }
-                                                        if !training.location.trim().is_empty() {
-                                                            ItemDescription { "Ort: {training.location}" }
-                                                        }
-                                                    }
-                                                }
-                                                if index + 1 < training_count {
-                                                    ItemSeparator {}
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            },
                         }
                     }
                 }

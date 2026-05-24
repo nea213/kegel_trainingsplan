@@ -12,4 +12,4 @@ pub mod permissions;
 pub mod seed;
 pub mod team_players;
 pub mod teams;
-pub mod training;
+pub mod training_plan_templates;

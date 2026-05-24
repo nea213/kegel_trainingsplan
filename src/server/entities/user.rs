@@ -25,6 +25,10 @@ pub enum Relation {
     Session,
     #[sea_orm(has_many = "super::team_player::Entity")]
     TeamPlayer,
+    #[sea_orm(has_many = "super::training_plan::Entity")]
+    TrainingPlanCreated,
+    #[sea_orm(has_many = "super::training_template::Entity")]
+    TrainingTemplate,
 }
 
 impl Related<super::club_membership::Entity> for Entity {
@@ -54,6 +58,18 @@ impl Related<super::session::Entity> for Entity {
 impl Related<super::team_player::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::TeamPlayer.def()
+    }
+}
+
+impl Related<super::training_plan::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::TrainingPlanCreated.def()
+    }
+}
+
+impl Related<super::training_template::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::TrainingTemplate.def()
     }
 }
 

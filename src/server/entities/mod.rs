@@ -6,5 +6,7 @@ pub mod invitation;
 pub mod session;
 pub mod team;
 pub mod team_player;
-pub mod training_session;
+pub mod training_plan;
+pub mod training_plan_template;
+pub mod training_template;
 pub mod user;

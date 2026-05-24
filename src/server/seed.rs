@@ -1,7 +1,12 @@
 use crate::server::{
     auth::{hash_password, normalize_username, now_timestamp, validate_password},
     entities::{
-        club, club_group, club_membership, group_trainer, team, team_player, training_session, user,
+        club, club_group, club_membership, group_trainer, team, team_player, training_plan,
+        training_plan_template, training_template, user,
+    },
+    training_plan_templates::{
+        create_training_plan_model, create_training_plan_template_model,
+        create_training_template_model, TrainingPlanDraft, TrainingTemplateDraft,
     },
 };
 use sea_orm::{
@@ -9,6 +14,7 @@ use sea_orm::{
     QueryFilter,
 };
 use std::env;
+use time::{Duration, OffsetDateTime};
 
 const SEED_DEV_DATA: &str = "SEED_DEV_DATA";
 const DEV_PASSWORD: &str = "Testpasswort123";
@@ -19,8 +25,6 @@ const TEAM_JUGEND_A: &str = "Jugend A";
 const TEAM_JUGEND_B: &str = "Jugend B";
 const TEAM_HERREN_1: &str = "Herren 1";
 const TEAM_DAMEN_1: &str = "Damen 1";
-const STATUS_PLANNED: &str = "planned";
-
 pub async fn seed_dev_data(db: &DatabaseConnection) -> Result<(), DbErr> {
     if !seed_dev_data_enabled() {
         return Ok(());
@@ -69,86 +73,108 @@ pub async fn seed_dev_data(db: &DatabaseConnection) -> Result<(), DbErr> {
     ensure_team_player(db, herren_1.id, spieler_finn.id, now).await?;
     ensure_team_player(db, damen_1.id, spieler_ella.id, now).await?;
 
-    ensure_training_session(
+    let jugend_technik = ensure_training_template(
         db,
-        TrainingSeed {
+        TrainingTemplateSeed {
             club_id: club.id,
             group_id: jugend.id,
-            team_id: None,
-            title: "Jugendtechnik am Freitag",
-            description: "Grundlagentraining für Anlauf, Rhythmus und Räumspiel.",
-            location: "Kegelhalle Musterstadt",
-            start_at: now + 86_400,
-            end_at: now + 93_600,
+            title: "Jugend Technikserie",
+            description: "Fokus auf Anlauf, Rhythmus und ruhige Kugelabgabe.",
+            number_of_throws: Some(60),
+            target_score: Some(520),
+            standing_pins: None,
+            clear_pins: Some(false),
             created_by_user_id: trainer_jugend.id,
         },
-        now,
     )
     .await?;
-    ensure_training_session(
+    let jugend_abräumen = ensure_training_template(
         db,
-        TrainingSeed {
+        TrainingTemplateSeed {
             club_id: club.id,
             group_id: jugend.id,
-            team_id: Some(jugend_a.id),
-            title: "Jugend A Wurfserie",
-            description: "Serien über die Vollen mit Fokus auf saubere Ausführung.",
-            location: "Bahn 1 und 2",
-            start_at: now + 172_800,
-            end_at: now + 180_000,
+            title: "Jugend Abräumen 3 Bilder",
+            description: "Abräumblock mit wechselnden Bildern und kurzer Besprechung nach jeder Serie.",
+            number_of_throws: Some(36),
+            target_score: Some(140),
+            standing_pins: Some(&[1, 2, 5, 8]),
+            clear_pins: Some(true),
             created_by_user_id: trainer_jugend.id,
         },
-        now,
     )
     .await?;
-    ensure_training_session(
+    let erwachsene_volle = ensure_training_template(
         db,
-        TrainingSeed {
+        TrainingTemplateSeed {
             club_id: club.id,
             group_id: erwachsene.id,
-            team_id: None,
-            title: "Abendtraining Erwachsene",
-            description: "Gemeinsames Training mit Ausdauerblock und Abräumen.",
-            location: "Kegelhalle Musterstadt",
-            start_at: now + 259_200,
-            end_at: now + 266_400,
+            title: "Volle 120 Wurf",
+            description: "Wettkampfnaher Block mit Serienrhythmus und kurzer Pausensteuerung.",
+            number_of_throws: Some(120),
+            target_score: Some(860),
+            standing_pins: None,
+            clear_pins: Some(false),
             created_by_user_id: trainer_erwachsene.id,
         },
-        now,
     )
     .await?;
-    ensure_training_session(
+    let erwachsene_bilder = ensure_training_template(
         db,
-        TrainingSeed {
+        TrainingTemplateSeed {
             club_id: club.id,
             group_id: erwachsene.id,
-            team_id: Some(herren_1.id),
-            title: "Herren 1 Wettkampfvorbereitung",
-            description: "Wettkampfnahes Training über 120 Wurf mit Pausenrhythmus.",
-            location: "Bahn 3 und 4",
-            start_at: now + 345_600,
-            end_at: now + 352_800,
-            created_by_user_id: trainer_erwachsene.id,
-        },
-        now,
-    )
-    .await?;
-    ensure_training_session(
-        db,
-        TrainingSeed {
-            club_id: club.id,
-            group_id: erwachsene.id,
-            team_id: Some(damen_1.id),
-            title: "Damen 1 Präzisionstraining",
+            title: "Abräumen schwierige Bilder",
             description: "Präzisionsübungen auf wechselnde Bilder im Abräumen.",
-            location: "Bahn 5 und 6",
-            start_at: now + 432_000,
-            end_at: now + 439_200,
+            number_of_throws: Some(48),
+            target_score: Some(180),
+            standing_pins: Some(&[3, 6, 7, 9]),
+            clear_pins: Some(true),
             created_by_user_id: trainer_erwachsene.id,
         },
-        now,
     )
     .await?;
+
+    let today = OffsetDateTime::from_unix_timestamp(now)
+        .map_err(db_error)?
+        .date();
+    let jugend_plan_day = (today + Duration::days(1))
+        .format(&time::format_description::parse("[year]-[month]-[day]").map_err(db_error)?)
+        .map_err(db_error)?;
+    let erwachsene_plan_day = (today + Duration::days(3))
+        .format(&time::format_description::parse("[year]-[month]-[day]").map_err(db_error)?)
+        .map_err(db_error)?;
+
+    let jugend_plan = ensure_training_plan(
+        db,
+        TrainingPlanSeed {
+            club_id: club.id,
+            group_id: jugend.id,
+            title: "Jugend Freitagstraining",
+            day: &jugend_plan_day,
+            note: "Technik zuerst, danach Abräumen in kurzen Blöcken.",
+            trainer_user_id: Some(trainer_jugend.id),
+            created_by_user_id: trainer_jugend.id,
+        },
+    )
+    .await?;
+    let erwachsene_plan = ensure_training_plan(
+        db,
+        TrainingPlanSeed {
+            club_id: club.id,
+            group_id: erwachsene.id,
+            title: "Erwachsene Wettkampfblock",
+            day: &erwachsene_plan_day,
+            note: "Wettkampfnaher Aufbau mit Abschluss auf schwierige Bilder.",
+            trainer_user_id: Some(trainer_erwachsene.id),
+            created_by_user_id: trainer_erwachsene.id,
+        },
+    )
+    .await?;
+
+    ensure_training_plan_template(db, jugend_plan.id, jugend_technik.id).await?;
+    ensure_training_plan_template(db, jugend_plan.id, jugend_abräumen.id).await?;
+    ensure_training_plan_template(db, erwachsene_plan.id, erwachsene_volle.id).await?;
+    ensure_training_plan_template(db, erwachsene_plan.id, erwachsene_bilder.id).await?;
 
     println!(
         "Entwicklungsdaten wurden sichergestellt. Test-Login: trainer.jugend / {}",
@@ -156,18 +182,6 @@ pub async fn seed_dev_data(db: &DatabaseConnection) -> Result<(), DbErr> {
     );
 
     Ok(())
-}
-
-struct TrainingSeed<'a> {
-    club_id: i32,
-    group_id: i32,
-    team_id: Option<i32>,
-    title: &'a str,
-    description: &'a str,
-    location: &'a str,
-    start_at: i64,
-    end_at: i64,
-    created_by_user_id: i32,
 }
 
 fn seed_dev_data_enabled() -> bool {
@@ -179,6 +193,28 @@ fn seed_dev_data_enabled() -> bool {
             _ => None,
         })
         .unwrap_or(false)
+}
+
+struct TrainingTemplateSeed<'a> {
+    club_id: i32,
+    group_id: i32,
+    title: &'a str,
+    description: &'a str,
+    number_of_throws: Option<i32>,
+    target_score: Option<i32>,
+    standing_pins: Option<&'a [u8]>,
+    clear_pins: Option<bool>,
+    created_by_user_id: i32,
+}
+
+struct TrainingPlanSeed<'a> {
+    club_id: i32,
+    group_id: i32,
+    title: &'a str,
+    day: &'a str,
+    note: &'a str,
+    trainer_user_id: Option<i32>,
+    created_by_user_id: i32,
 }
 
 async fn ensure_user(
@@ -375,15 +411,75 @@ async fn ensure_team_player(
     Ok(())
 }
 
-async fn ensure_training_session(
+async fn ensure_training_template(
     db: &DatabaseConnection,
-    seed: TrainingSeed<'_>,
-    now: i64,
+    seed: TrainingTemplateSeed<'_>,
+) -> Result<training_template::Model, DbErr> {
+    if let Some(existing) = training_template::Entity::find()
+        .filter(training_template::Column::GroupId.eq(seed.group_id))
+        .filter(training_template::Column::Title.eq(seed.title))
+        .one(db)
+        .await?
+    {
+        return Ok(existing);
+    }
+
+    let model = create_training_template_model(
+        TrainingTemplateDraft {
+            club_id: seed.club_id,
+            group_id: seed.group_id,
+            title: seed.title.to_string(),
+            description: seed.description.to_string(),
+            number_of_throws: seed.number_of_throws,
+            target_score: seed.target_score,
+            standing_pins: seed.standing_pins.map(|pins| pins.to_vec()),
+            clear_pins: seed.clear_pins,
+        },
+        seed.created_by_user_id,
+    )
+    .map_err(db_error)?;
+
+    model.insert(db).await
+}
+
+async fn ensure_training_plan(
+    db: &DatabaseConnection,
+    seed: TrainingPlanSeed<'_>,
+) -> Result<training_plan::Model, DbErr> {
+    if let Some(existing) = training_plan::Entity::find()
+        .filter(training_plan::Column::GroupId.eq(seed.group_id))
+        .filter(training_plan::Column::Title.eq(seed.title))
+        .filter(training_plan::Column::Day.eq(seed.day))
+        .one(db)
+        .await?
+    {
+        return Ok(existing);
+    }
+
+    let model = create_training_plan_model(
+        TrainingPlanDraft {
+            club_id: seed.club_id,
+            group_id: seed.group_id,
+            title: seed.title.to_string(),
+            day: seed.day.to_string(),
+            note: seed.note.to_string(),
+            trainer_user_id: seed.trainer_user_id,
+        },
+        seed.created_by_user_id,
+    )
+    .map_err(db_error)?;
+
+    model.insert(db).await
+}
+
+async fn ensure_training_plan_template(
+    db: &DatabaseConnection,
+    training_plan_id: i32,
+    training_template_id: i32,
 ) -> Result<(), DbErr> {
-    if training_session::Entity::find()
-        .filter(training_session::Column::GroupId.eq(seed.group_id))
-        .filter(training_session::Column::Title.eq(seed.title))
-        .filter(training_session::Column::StartAt.eq(seed.start_at))
+    if training_plan_template::Entity::find()
+        .filter(training_plan_template::Column::TrainingPlanId.eq(training_plan_id))
+        .filter(training_plan_template::Column::TrainingTemplateId.eq(training_template_id))
         .one(db)
         .await?
         .is_some()
@@ -391,23 +487,9 @@ async fn ensure_training_session(
         return Ok(());
     }
 
-    training_session::ActiveModel {
-        club_id: Set(seed.club_id),
-        group_id: Set(seed.group_id),
-        team_id: Set(seed.team_id),
-        title: Set(seed.title.to_string()),
-        description: Set(seed.description.to_string()),
-        location: Set(seed.location.to_string()),
-        start_at: Set(seed.start_at),
-        end_at: Set(seed.end_at),
-        status: Set(STATUS_PLANNED.to_string()),
-        created_by_user_id: Set(seed.created_by_user_id),
-        created_at: Set(now),
-        updated_at: Set(now),
-        ..Default::default()
-    }
-    .insert(db)
-    .await?;
+    create_training_plan_template_model(training_plan_id, training_template_id)
+        .insert(db)
+        .await?;
 
     Ok(())
 }
