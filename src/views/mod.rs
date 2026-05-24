@@ -21,3 +21,6 @@ pub use navbar::Navbar;
 
 mod register;
 pub use register::Register;
+
+mod trainer_area;
+pub use trainer_area::TrainerArea;

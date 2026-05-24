@@ -2,7 +2,7 @@ use dioxus::prelude::*;
 
 use components::ui::toast::ToastProvider;
 use theme::{ThemeContext, ThemeMode};
-use views::{ClubDetail, Clubs, Dashboard, GroupDetail, Home, Login, Navbar, Register};
+use views::{ClubDetail, Clubs, Dashboard, GroupDetail, Home, Login, Navbar, Register, TrainerArea};
 
 mod auth;
 mod club_memberships;
@@ -16,8 +16,8 @@ mod invitations;
 mod server;
 mod team_players;
 mod teams;
-mod training;
 mod theme;
+mod training_management;
 mod views;
 
 #[derive(Debug, Clone, Routable, PartialEq)]
@@ -41,6 +41,9 @@ enum Route {
 
         #[route("/groups/:group_id")]
         GroupDetail { group_id: i32 },
+
+        #[route("/trainer")]
+        TrainerArea {},
 
         #[route("/")]
         Home {},

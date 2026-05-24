@@ -6,6 +6,7 @@ use crate::components::ui::dropdown_menu::{
 };
 use crate::components::ui::navbar::{Navbar as UiNavbar, NavbarItem};
 use crate::components::ui::separator::Separator;
+use crate::dashboard::get_dashboard_context;
 use crate::theme::{ThemeContext, ThemeMode};
 use crate::{
     auth::current_user, auth::logout_user, auth::update_theme_mode, auth::PublicUser, Route,
@@ -22,7 +23,12 @@ pub fn Navbar() -> Element {
         let _ = auth_refresh();
         async move { current_user().await.ok().flatten() }
     })?;
+    let trainer_nav_resource = use_server_future(move || {
+        let _ = auth_refresh();
+        async move { get_dashboard_context().await.ok() }
+    })?;
     let user_state = user_resource.read().as_ref().cloned();
+    let trainer_nav_state = trainer_nav_resource.read().as_ref().cloned().flatten();
     let user = user_state.clone().flatten();
     let theme_sync_target = user.clone();
     let login_target = sanitize_return_to(Some(current_route));
@@ -78,9 +84,17 @@ pub fn Navbar() -> Element {
                                 to: Route::Dashboard {},
                                 "Startseite"
                             }
-                            if user.is_system_admin {
+                            if user.is_system_admin || trainer_nav_state.as_ref().map(|context| !context.managed_groups.is_empty()).unwrap_or(false) {
                                 NavbarItem {
                                     index: 1usize,
+                                    value: "trainer".to_string(),
+                                    to: Route::TrainerArea {},
+                                    "Trainerbereich"
+                                }
+                            }
+                            if user.is_system_admin {
+                                NavbarItem {
+                                    index: 2usize,
                                     value: "clubs".to_string(),
                                     to: Route::Clubs {},
                                     "Vereine"
