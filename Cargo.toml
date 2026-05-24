@@ -34,3 +34,6 @@ desktop = ["dioxus/desktop", "dioxus-cookie/desktop"]
 mobile = ["dioxus/mobile", "dioxus-cookie/mobile-sim"]
 # The feature that are only required for the server = ["dioxus/server"] build target should be optional and only enabled in the server = ["dioxus/server"] feature
 server = ["dioxus/server", "dioxus-cookie/server", "dep:sea-orm", "dep:argon2", "dep:password-hash", "dep:rand_core", "dep:tokio", "dep:uuid", "dep:dotenvy"]
+
+[dev-dependencies]
+dioxus-ssr = "0.7.1"

@@ -3364,6 +3364,7 @@ dependencies = [
  "dioxus-cookie",
  "dioxus-icons",
  "dioxus-primitives",
+ "dioxus-ssr",
  "dotenvy",
  "palette",
  "password-hash",
